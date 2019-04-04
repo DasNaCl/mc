@@ -1,0 +1,16 @@
+Token: Id
+Token: LParen
+Token: Number
+Token: RParen
+Token: LBrace
+Token: Id
+Token: Number
+Token: Semicolon
+Token: RBrace
+Token: Id
+Token: LBrace
+Token: Id
+Token: Number
+Token: Semicolon
+Token: RBrace
+Token: EndOfFile

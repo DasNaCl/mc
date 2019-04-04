@@ -1,0 +1,4 @@
+Token: Undef
+Token: Undef
+Token: Undef
+Token: EndOfFile
