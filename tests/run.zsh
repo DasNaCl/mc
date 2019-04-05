@@ -31,7 +31,7 @@ for directory in */; do
       fails=$(( fails + 1 ))
     else
       echo -ne "${GREEN}SUCCESS${WHITE}.\n"
-      successes=$(( success + 1 ))
+      successes=$(( successes + 1 ))
     fi
   done
   SUCCCOL="$WHITE"
