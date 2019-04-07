@@ -1,0 +1,40 @@
+
+#ifndef TOK
+#define TOK(x)
+#endif
+
+#ifndef TOK_CONTROL
+#define TOK_CONTROL(x, v)
+#endif
+
+#ifndef TOK_EXPR_OP
+#define TOK_EXPR_OP(x, v)
+#endif
+
+TOK(EndOfFile)
+TOK(Undef)
+
+TOK(Id)
+TOK(Number)
+TOK(String)
+TOK(Character)
+
+TOK_CONTROL(Semicolon, ';')
+TOK_CONTROL(LParen, '(')
+TOK_CONTROL(RParen, ')')
+TOK_CONTROL(LBrace, '{')
+TOK_CONTROL(RBrace, '}')
+TOK_CONTROL(LBracket, '[')
+TOK_CONTROL(RBracket, ']')
+
+TOK_EXPR_OP(Equal, '=')
+TOK_EXPR_OP(Plus, '+')
+TOK_EXPR_OP(Minus, '-')
+TOK_EXPR_OP(Star, '*')
+TOK_EXPR_OP(Slash, '/')
+
+#undef TOK
+#undef TOK_COMPOUND
+#undef TOK_CONTROL
+#undef TOK_EXPR_OP
+
