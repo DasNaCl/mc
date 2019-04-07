@@ -1,15 +1,18 @@
 #include <tokenizer.hpp>
 
-Tokenizer::Tokenizer(std::istream& handle)
-  : handle(handle), linebuf(), row(1), col(0)
+Tokenizer::Tokenizer(const char* module, std::istream& handle)
+  : module(module), handle(handle), linebuf(), row(1), col(0)
 {  }
 
 Token Tokenizer::get()
 {
   void* data = nullptr;
   TokenKind kind = TokenKind::Undef;
+
   char ch = read();
-redo:
+  std::size_t beg_row = row;
+  std::size_t beg_col = col-1;
+
   switch(ch)
   {
   default:
@@ -39,13 +42,8 @@ redo:
         }
         kind = TokenKind::Number;
       }
-      else if(std::isspace(ch))
-      {
-        ch = linebuf[col++];
-        goto redo;
-      }
       else
-        return { TokenKind::Undef };
+        return Token(SourceRange(module, beg_col + 1, beg_row, col + 1, row), TokenKind::Undef);
     break;
   case '\"':
       while(ch != '\"')
@@ -53,7 +51,7 @@ redo:
         ch = linebuf[col++];
         if(col >= linebuf.size())
         {
-          return { TokenKind::Undef };
+          return Token(SourceRange(module, beg_col + 1, beg_row, col, row), TokenKind::Undef);
         }
       }
       kind = TokenKind::String;
@@ -62,7 +60,7 @@ redo:
       ch = linebuf[col++];
       if(col + 1 >= linebuf.size() || linebuf[col + 1] != '\'')
       {
-        return { TokenKind::Undef };
+        return Token(SourceRange(module, beg_col + 1, beg_row, col + 1, row), TokenKind::Undef);
       }
       kind = TokenKind::Character;
     break;
@@ -84,19 +82,43 @@ redo:
       kind = TokenKind::EndOfFile;
     break;
   }
-  return Token(kind, data);
+  return Token(SourceRange(module, beg_col + 1, beg_row, col + 1, row), kind, data);
 }
 
 char Tokenizer::read()
 {
-  if(col >= linebuf.size())
+  char ch = 0;
+  bool skipped_line = false;
+  do
   {
-    if(!(std::getline(handle, linebuf)))
-      return EOF;
-    col = 0;
-    row++;
-  }
-  return linebuf[col++];
+    if(col >= linebuf.size())
+    {
+      if(!linebuf.empty())
+        row++;
+      if(!(std::getline(handle, linebuf)))
+      {
+        col = 1;
+        return EOF;
+      }
+      col = 0;
+    }
+    ch = linebuf[col++];
+    if(std::isspace(ch))
+    {
+      while(col < linebuf.size())
+      {
+        skipped_line = true;
+        ch = linebuf[col++];
+        if(!(std::isspace(ch)))
+        {
+          skipped_line = false;
+          break;
+        }
+      }
+    }
+  } while(skipped_line);
+
+  return ch;
 }
 
 
@@ -130,5 +152,11 @@ Token::operator std::string() const
   case TokenKind::Star: return "Star";
   case TokenKind::Slash: return "Slash";
   }
+}
+
+std::ostream& operator<<(std::ostream& os, const Token& tok)
+{
+  os << tok.range << " Token: " << static_cast<std::string>(tok);
+  return os;
 }
 

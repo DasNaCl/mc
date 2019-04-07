@@ -4,13 +4,12 @@
 
 int main(int argc, const char* argv[])
 {
-  Tokenizer tokenizer = Tokenizer(std::cin);
+  Tokenizer tokenizer = Tokenizer("STDIN", std::cin);
 
   Token tok;
   do
   {
-    tok = tokenizer.get();
-    std::cout << "Token: " << static_cast<std::string>(tok) << "\n";
+    std::cout << (tok = tokenizer.get()) << "\n";
   } while(tok.kind != TokenKind::EndOfFile);
 
   return 0;

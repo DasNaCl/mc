@@ -1,4 +1,4 @@
-Token: Undef
-Token: Undef
-Token: Undef
-Token: EndOfFile
+STDIN:1:1: Token: Undef
+STDIN:2:1: Token: Undef
+STDIN:3:1: Token: Undef
+STDIN:1:2: Token: EndOfFile

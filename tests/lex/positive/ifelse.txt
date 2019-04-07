@@ -1,16 +1,16 @@
-Token: Id
-Token: LParen
-Token: Number
-Token: RParen
-Token: LBrace
-Token: Id
-Token: Number
-Token: Semicolon
-Token: RBrace
-Token: Id
-Token: LBrace
-Token: Id
-Token: Number
-Token: Semicolon
-Token: RBrace
-Token: EndOfFile
+STDIN:1:1: Token: Id
+STDIN:3:1: Token: LParen
+STDIN:4:1: Token: Number
+STDIN:5:1: Token: RParen
+STDIN:7:1: Token: LBrace
+STDIN:9:1: Token: Id
+STDIN:16:1: Token: Number
+STDIN:18:1: Token: Semicolon
+STDIN:20:1: Token: RBrace
+STDIN:1:2: Token: Id
+STDIN:7:2: Token: LBrace
+STDIN:9:2: Token: Id
+STDIN:16:2: Token: Number
+STDIN:18:2: Token: Semicolon
+STDIN:20:2: Token: RBrace
+STDIN:1:3: Token: EndOfFile
