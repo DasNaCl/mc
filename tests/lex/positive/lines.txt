@@ -1,0 +1,2 @@
+STDIN:7:6: Token: Number
+STDIN:1:8: Token: EndOfFile

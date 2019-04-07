@@ -11,7 +11,7 @@ Token Tokenizer::get()
 
   char ch = read();
   std::size_t beg_row = row;
-  std::size_t beg_col = col-1;
+  std::size_t beg_col = col - 1;
 
   switch(ch)
   {
@@ -100,14 +100,26 @@ char Tokenizer::read()
         col = 1;
         return EOF;
       }
+      else
+      {
+        while(linebuf.empty())
+        {
+          row++;
+          if(!(std::getline(handle, linebuf)))
+          {
+            col = 1;
+            return EOF;
+          }
+        }
+      }
       col = 0;
     }
     ch = linebuf[col++];
     if(std::isspace(ch))
     {
+      skipped_line = true;
       while(col < linebuf.size())
       {
-        skipped_line = true;
         ch = linebuf[col++];
         if(!(std::isspace(ch)))
         {
