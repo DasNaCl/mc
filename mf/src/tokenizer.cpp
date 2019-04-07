@@ -1,7 +1,7 @@
 #include <tokenizer.hpp>
 
 Tokenizer::Tokenizer(const char* module, std::istream& handle)
-  : module(module), handle(handle), linebuf(), row(1), col(0)
+  : module(module), handle(handle), linebuf(), row(1), col(0), token_data_table()
 {  }
 
 Token Tokenizer::get()
@@ -18,6 +18,9 @@ Token Tokenizer::get()
   default:
       if(('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z'))
       {
+        std::uint_fast32_t hash = ch;
+        std::string name;
+        name.push_back(ch);
         while(col < linebuf.size())
         {
           ch = linebuf[col++];
@@ -26,8 +29,14 @@ Token Tokenizer::get()
             col--;
             break;
           }
+          name.push_back(ch);
+          hash ^= (hash * 31) + ch;
         }
         kind = TokenKind::Id;
+        auto& v = token_data_table[hash];
+        v.resize(name.size() + 1, 0);
+        std::copy(name.begin(), name.end(), v.begin());
+        data = &v[0];
       }
       else if('0' <= ch && ch <= '9')
       {
@@ -64,6 +73,7 @@ Token Tokenizer::get()
       }
       kind = TokenKind::Character;
     break;
+
   case '+':
   case '-':
   case '*':
@@ -143,7 +153,7 @@ Token::operator std::string() const
 
   case TokenKind::EndOfFile: return "EndOfFile";
 
-  case TokenKind::Id: return "Id";
+  case TokenKind::Id: return std::string("Id(") + std::string(reinterpret_cast<char*>(data)) + ")";
 
   case TokenKind::Number: return "Number";
   case TokenKind::String: return "String";

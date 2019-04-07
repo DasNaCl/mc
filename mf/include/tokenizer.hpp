@@ -1,9 +1,12 @@
 #pragma once
 
+#include <tsl/hopscotch_map.h>
+
 #include <SourceRange.hpp>
 
 #include <cstdint>
 #include <istream>
+#include <memory>
 #include <string>
 
 enum class TokenKind : std::int_fast16_t
@@ -49,5 +52,7 @@ private:
   std::string linebuf;
   std::size_t row;
   std::size_t col; 
+
+  tsl::hopscotch_map<std::uint_fast32_t, std::vector<std::uint_fast8_t>> token_data_table;
 };
 
