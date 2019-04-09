@@ -19,6 +19,7 @@ endmacro()
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/hopscotch-map)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/mf/include/)
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/hopscotch-map/include/)
 
 add_executable(mf mf/src/main.cpp
