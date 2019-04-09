@@ -173,3 +173,7 @@ CmdOptions::CmdOptionsAdder& CmdOptions::CmdOptionsAdder::operator()(std::string
   return *this;
 }
 
+Symbol::Symbol(const std::string& str)
+  : hash(hash_string(str)), str(symbols[hash])
+{  }
+

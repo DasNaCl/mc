@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tsl/hopscotch_map.h>
 #include <typeindex>
 #include <cstdint>
 #include <sstream>
@@ -89,4 +90,19 @@ void CmdOptions::TaggedValue<T>::parse(int& i, int , const char** argv)
 template<typename T>
 T& CmdOptions::Value::get()
 { return static_cast<TaggedValue<T>&>(*(clone().get())).val; }
+
+
+std::uint_fast32_t hash_string(const std::string& str);
+
+struct Symbol
+{
+  Symbol(const std::string& str);
+
+private:
+  static thread_local tsl::hopscotch_map<std::uint_fast32_t, std::string> symbols;
+
+  std::uint_fast32_t hash;
+  std::string& str;
+};
+
 
