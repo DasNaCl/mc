@@ -13,17 +13,23 @@ int main(int argc, const char* argv[])
     ("t,just-tokenize", "Emit tokens of given modules.")
     ("p,just-parse", "Emit abstract syntax tree of given modules.")
     ;
-  opt.parse(argc, argv);
+  auto map = opt.parse(argc, argv);
 
   Tokenizer tokenizer = Tokenizer("STDIN", std::cin);
-
-  Token tok;
-  do
+  if(map["p"]->get<bool>())
   {
-    std::cout << (tok = tokenizer.get()) << "\n";
-  } while(tok.kind != TokenKind::EndOfFile);
+    auto astnodes = parse(tokenizer);
 
-  auto astnodes = parse(tokenizer);
+    std::cout << "total nodes: " << astnodes.size() << "\n";
+  }
+  else if(map["t"]->get<bool>())
+  {
+    Token tok;
+    do
+    {
+      std::cout << (tok = tokenizer.get()) << "\n";
+    } while(tok.kind != TokenKind::EndOfFile);
+  }
 
-  return astnodes.empty() ? 1 : 0;
+  return 0;
 }
