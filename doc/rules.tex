@@ -1,0 +1,37 @@
+\documentclass[border=5pt]{standalone}
+\usepackage{listings}
+\usepackage{setspace}
+
+\lstset{
+  basicstyle=\itshape,
+  xleftmargin=3em,
+  mathescape,
+  literate={->}{$\rightarrow$}{2}
+           {α}{$\alpha$}{1}
+           {δ}{$\delta$}{1},
+}
+
+\begin{document}
+\begin{spacing}{2}
+\begin{lstlisting}
+Module -> Functions
+
+Functions -> Function | Function Functions
+
+Function -> FunctionHead FunctionBody
+
+FunctionHead -> Identifiers$^{OPT}$ Parameters | Identifiers$^{OPT}$ Parameters$^{OPT}$ FunctionHead
+Identifiers -> Identifier | Identifier Identifiers
+Parameters -> '(' Parameter-List ')'
+Parameter-List -> Parameter | Parameter ',' Parameter-List
+Parameter -> Name ':' Type
+
+FunctionBody -> Block | ExpressionStatement
+Block -> '{' Statements '}'
+Statements -> Statement | Statement ';' Statements
+
+Statement -> ExpressionStatement
+ExpressionStatement -> Expression
+\end{lstlisting}
+\end{spacing}
+\end{document}
