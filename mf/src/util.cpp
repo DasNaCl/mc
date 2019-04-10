@@ -173,7 +173,13 @@ CmdOptions::CmdOptionsAdder& CmdOptions::CmdOptionsAdder::operator()(std::string
   return *this;
 }
 
+thread_local tsl::hopscotch_map<std::uint_fast32_t, std::string> Symbol::symbols = {};
+
 Symbol::Symbol(const std::string& str)
+  : hash(hash_string(str)), str(symbols[hash])
+{  }
+
+Symbol::Symbol(const char* str)
   : hash(hash_string(str)), str(symbols[hash])
 {  }
 

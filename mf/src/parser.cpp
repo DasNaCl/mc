@@ -56,8 +56,54 @@ private:
   // parsers
   
   Statement::Ptr parse_root()
-  {
+  { return parse_function(); }
 
+  Statement::Ptr parse_function(bool is_top_level = false)
+  {
+    // allowed are:
+    //  foo (...) (...) {}
+    //  foo (...) bar (...) {}
+    //  foo (...) bar (...) baz {}
+    //  (...) bar (...) baz {}
+    //  (...) bar (...) {}
+    //  foo {} //<- this makes us assume an empty parameter list
+    //
+    // NOT allowed are:
+    //  foo bar (...) {}
+    //  {} foo (...)
+    //  {} (...)
+    //  (...) (...) baz {}
+    //  foo (...) (...) {}
+    
+    SourceRange range = current_token.range;
+    std::vector<Statement::Ptr> data;
+
+    while(!peek(TokenKind::LBrace))
+    {
+      if(peek(TokenKind::Id))
+      {
+        // parse id
+      }
+      else if(peek(TokenKind::LParen))
+      {
+        // parse parameters
+      }
+      else
+      {
+        // emit error
+      }
+    }
+    if(is_top_level && data.size() < 2) // cant have a parameter list
+    {
+      // TODO: emit error
+    }
+    data.push_back(parse_block());
+    return std::make_shared<Function>(range, data);
+  }
+
+  Statement::Ptr parse_block()
+  {
+    // TODO
     return nullptr;
   }
 };
