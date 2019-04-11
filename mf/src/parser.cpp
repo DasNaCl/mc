@@ -67,6 +67,7 @@ private:
     //  (...) bar (...) baz {}
     //  (...) bar (...) {}
     //  foo {} //<- this makes us assume an empty parameter list
+    //  (...) {} // <- lambda, only ok if not top_level
     //
     // NOT allowed are:
     //  foo bar (...) {}
@@ -78,19 +79,40 @@ private:
     SourceRange range = current_token.range;
     std::vector<Statement::Ptr> data;
 
+    TokenKind last = TokenKind::Undef;
     while(!peek(TokenKind::LBrace))
     {
-      if(peek(TokenKind::Id))
+      if(peek(TokenKind::Id) && last != TokenKind::Id)
       {
         // parse id
+        data.push_back(std::make_shared<Identifier>(range, Symbol(reinterpret_cast<const char*>(current_token.data))));
+        expect(TokenKind::Id);
+        last = TokenKind::Id;
       }
-      else if(peek(TokenKind::LParen))
+      else if(peek(TokenKind::LParen) && last != TokenKind::RParen)
       {
-        // parse parameters
+        expect(TokenKind::LParen);
+        while(!peek(TokenKind::RParen))
+          data.push_back(parse_parameter());
+        expect(TokenKind::RParen);
+        last = TokenKind::RParen;
       }
       else
       {
         // emit error
+        if(last == TokenKind::Id)
+        {
+          // two consecutive identifiers
+        }
+        else if(last == TokenKind::RParen)
+        {
+          // two consecutive parameter lists
+        }
+        else
+        {
+          // different error
+        }
+        last = TokenKind::Undef;
       }
     }
     if(is_top_level && data.size() < 2) // cant have a parameter list
@@ -102,6 +124,12 @@ private:
   }
 
   Statement::Ptr parse_block()
+  {
+    // TODO
+    return nullptr;
+  }
+
+  Statement::Ptr parse_parameter()
   {
     // TODO
     return nullptr;

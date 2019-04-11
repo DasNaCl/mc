@@ -42,13 +42,31 @@ private:
   Symbol symbol;
 };
 
-class Var : public Statement
+class Declaration : public Statement
 {
 public:
-  Var(SourceRange range, Identifier::Ptr identifier, Type::Ptr type);
+  Declaration(SourceRange range, Identifier::Ptr identifier, Type::Ptr type);
+private:
+  SourceRange range;
+  Identifier::Ptr identifier;
+  Type::Ptr type;
+};
+
+class Parameter : public Declaration
+{
+public:
+  Parameter(SourceRange range, Identifier::Ptr identifier, Type::Ptr type);
 private:
   Identifier::Ptr identifier;
   Type::Ptr type;
+};
+
+class Parameters : public Statement
+{
+public:
+  Parameters(SourceRange range, const std::vector<Parameter::Ptr>& list);
+private:
+  std::vector<Parameter::Ptr> list;
 };
 
 class Block : public Statement
@@ -66,3 +84,4 @@ public:
 private:
   std::vector<Statement::Ptr> data;
 };
+
