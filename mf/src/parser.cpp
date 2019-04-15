@@ -124,7 +124,8 @@ private:
     std::vector<Statement::Ptr> statements;
     while(!peek(TokenKind::RBrace))
     {
-      statements.emplace_back(parse_expression_statement());
+      auto stmt = parse_expression_statement();
+      statements.emplace_back(stmt);
     }
     expect(TokenKind::RBrace);
     range.widen(current_token.range);
@@ -140,7 +141,9 @@ private:
 
   Statement::Ptr parse_expression_statement()
   {
-    return std::make_shared<ExpressionStatement>(parse_expression(0));
+    auto expr = parse_expression(0);
+    
+    return std::make_shared<ExpressionStatement>(expr);
   }
 
   std::int_fast32_t lbp(TokenKind kind) const

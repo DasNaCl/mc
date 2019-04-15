@@ -155,8 +155,9 @@ struct Symbol
   Symbol(const std::string& str);
   Symbol(const char* str);
 
+  friend std::ostream& operator<<(std::ostream& os, const Symbol& s);
 private:
-  static thread_local tsl::hopscotch_map<std::uint_fast32_t, std::string> symbols;
+  thread_local static tsl::hopscotch_map<std::uint_fast32_t, std::string> symbols;
 
   std::uint_fast32_t hash;
   std::string& str;

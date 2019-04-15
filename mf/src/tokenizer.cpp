@@ -4,7 +4,7 @@ Tokenizer::Tokenizer(const char* module, std::istream& handle)
   : module(module), handle(handle), linebuf(), row(1), col(0), token_data_table()
 {  }
 
-const char* Tokenizer::module_name() const
+const std::string& Tokenizer::module_name() const
 { return module; }
 
 Token Tokenizer::get()
@@ -55,7 +55,7 @@ Token Tokenizer::get()
         kind = TokenKind::Number;
       }
       else
-        return Token(SourceRange(module, beg_col + 1, beg_row, col + 1, row), TokenKind::Undef);
+        return Token(SourceRange(module.c_str(), beg_col + 1, beg_row, col + 1, row), TokenKind::Undef);
     break;
   case '\"':
       while(ch != '\"')
@@ -63,7 +63,7 @@ Token Tokenizer::get()
         ch = linebuf[col++];
         if(col >= linebuf.size())
         {
-          return Token(SourceRange(module, beg_col + 1, beg_row, col, row), TokenKind::Undef);
+          return Token(SourceRange(module.c_str(), beg_col + 1, beg_row, col, row), TokenKind::Undef);
         }
       }
       kind = TokenKind::String;
@@ -72,7 +72,7 @@ Token Tokenizer::get()
       ch = linebuf[col++];
       if(col + 1 >= linebuf.size() || linebuf[col + 1] != '\'')
       {
-        return Token(SourceRange(module, beg_col + 1, beg_row, col + 1, row), TokenKind::Undef);
+        return Token(SourceRange(module.c_str(), beg_col + 1, beg_row, col + 1, row), TokenKind::Undef);
       }
       kind = TokenKind::Character;
     break;
@@ -95,7 +95,7 @@ Token Tokenizer::get()
       kind = TokenKind::EndOfFile;
     break;
   }
-  return Token(SourceRange(module, beg_col + 1, beg_row, col + 1, row), kind, data);
+  return Token(SourceRange(module.c_str(), beg_col + 1, beg_row, col + 1, row), kind, data);
 }
 
 char Tokenizer::read()

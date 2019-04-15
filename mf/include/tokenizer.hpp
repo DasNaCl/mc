@@ -44,12 +44,12 @@ public:
 
   Token get();
 
-  const char* module_name() const;
+  const std::string& module_name() const;
 private:
   char read(); 
 
 private:
-  const char* module;
+  const std::string module;
   std::istream& handle;
   std::string linebuf;
   std::size_t row;

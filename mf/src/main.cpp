@@ -1,6 +1,8 @@
 #include <tokenizer.hpp>
 #include <parser.hpp>
 
+#include <ast_printer.hpp>
+
 #include <util.hpp>
 
 #include <iostream>
@@ -40,7 +42,10 @@ int main(int argc, const char* argv[])
     {
       auto astnodes = parse(tokenizer);
 
+
       std::cout << "Abstract syntax tree of module \"" << tokenizer.module_name() << "\": \n";
+      ASTPrinter printer;
+      printer.visit_all(astnodes);
       std::cout << astnodes.size() << "\n";
     }
   }
