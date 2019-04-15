@@ -43,6 +43,8 @@ public:
   Tokenizer(const char* module, std::istream& handle);
 
   Token get();
+
+  const char* module_name() const;
 private:
   char read(); 
 

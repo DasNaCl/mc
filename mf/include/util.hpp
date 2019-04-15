@@ -34,6 +34,9 @@ struct CmdOptions
   {
     using Ptr = std::shared_ptr<TaggedValue<T>>;
 
+    static Value::Ptr create()
+    { return std::make_shared<TaggedValue<T>>(); }
+
     Value::Ptr clone() override
     { return std::make_shared<TaggedValue<T>>(*this); }
 
@@ -80,16 +83,62 @@ private:
 };
 
 template<typename T>
-void CmdOptions::TaggedValue<T>::parse(int& i, int , const char** argv)
+void CmdOptions::TaggedValue<T>::parse(int& i, int argc, const char** argv)
 {
-  std::stringstream ss(argv[i++]);
-  ss >> val;
-}
+  if constexpr(std::is_same<T, std::vector<std::string>>::value)
+  {
+    ++i;
+    while(i < argc)
+    {
+      if(argv[i][0] == '-')
+      {
+        if(argv[i][1] == '-' && argv[i][2] == '\0')
+        {
+          val.push_back(argv[i++]);
+          continue;
+        }
+        else
+        {
+          // another command line argument, exit earlier
+          break;
+        }
+      }
 
+      val.push_back(argv[i++]);
+    }
+  }
+  else if constexpr(std::is_same<T, bool>::value)
+  {
+    // TODO: check for overrides, e.g. "--transmogrify yes"
+
+    constexpr const char* truth[]   = { "yes", "true", "t", "y" };
+    constexpr const char* falsity[] = { "no", "false", "n", "f" };
+
+    auto cpy = default_value;
+    std::transform(cpy.begin(), cpy.end(), cpy.begin(), [](unsigned char c) { return std::tolower(c); });
+
+    if(std::find(std::begin(truth), std::end(truth), cpy) != std::end(truth))
+    {
+      //default is true, so we set val to false
+      val = false;
+    }
+    else if(std::find(std::begin(falsity), std::end(falsity), cpy) != std::end(falsity))
+    {
+      //default is false, so we set val to true
+      val = true;
+    }
+    ++i;
+  }
+  else
+  {
+    std::stringstream ss(argv[i++]);
+    ss >> val;
+  }
+}
 
 template<typename T>
 T& CmdOptions::Value::get()
-{ return static_cast<TaggedValue<T>&>(*(clone().get())).val; }
+{ return static_cast<TaggedValue<T>&>(*this).val; }
 
 template<typename T>
 std::uint_fast32_t hash_string(T str)

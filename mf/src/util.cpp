@@ -7,36 +7,6 @@
 std::uint_fast32_t hash_combine(std::uint_fast32_t lhs, std::uint_fast32_t rhs)
 { return lhs ^ rhs + 0x517cc1b7 + (lhs << 6U) + (lhs >> 2U); }
 
-template<>
-void CmdOptions::TaggedValue<std::vector<std::string>>::parse(int& i, int argc, const char** argv)
-{
-  while(i < argc)
-  { val.push_back(argv[i++]); }
-}
-
-template<>
-void CmdOptions::TaggedValue<bool>::parse(int& i, int argc, const char** argv)
-{
-  // TODO: check for overrides, e.g. "--transmogrify yes"
-
-  constexpr const char* truth[]   = { "yes", "true", "t", "y" };
-  constexpr const char* falsity[] = { "no", "false", "n", "f" };
-
-  auto cpy = default_value;
-  std::transform(cpy.begin(), cpy.end(), cpy.begin(), [](unsigned char c) { return std::tolower(c); });
-
-  if(std::find(std::begin(truth), std::end(truth), cpy) != std::end(truth))
-  {
-    //default is true, so we set val to false
-    val = false;
-  }
-  else if(std::find(std::begin(falsity), std::end(falsity), cpy) != std::end(falsity))
-  {
-    //default is false, so we set val to true
-    val = true;
-  }
-  ++i;
-}
 
 CmdOptions::CmdOptions(std::string name, std::string description)
   : name(name), description(description), opts()
@@ -54,10 +24,7 @@ void CmdOptions::add(std::string option, std::string description, CmdOptions::Va
   std::stringstream ss(option);
   for(std::string str; std::getline(ss, str, ','); )
   {
-    if(!str.empty())
-    {
-      (str.size() > 1 ? long_names : short_names).push_back(str);
-    }
+    (str.size() > 1 ? long_names : short_names).push_back(str);
   }
   auto value = val->clone();
   value->default_value = default_value;
@@ -67,17 +34,26 @@ void CmdOptions::add(std::string option, std::string description, CmdOptions::Va
 
 CmdOptions::ValueMapping CmdOptions::parse(int argc, const char** argv)
 {
+  bool allows_dashdash = false;
+  bool has_empty_arg = false;
   ValueMapping map;
   for(auto& opt : opts)
   {
     for(auto& n : opt.short_names)
+    {
       map[n] = opt.value;
+      if(n.empty())
+        has_empty_arg = true;
+      if(n == "-")
+        allows_dashdash = true;
+    }
     for(auto& n : opt.long_names)
       map[n] = opt.value;
   }
   for(int i = 1; i < argc; )
   {
     // argument must be prefixed with - or --
+    // EXCEPT if there is an empty arg, which we then implicitly assume to be set
     std::string arg = argv[i];
     assert(!arg.empty());
 
@@ -86,9 +62,17 @@ CmdOptions::ValueMapping CmdOptions::parse(int argc, const char** argv)
     {
       if(arg[1] == '-' && arg.size() > 1)
       {
-        long_arg = true;
-        arg.erase(arg.begin());
-        arg.erase(arg.begin());
+        if(!(arg[1] == '-' && arg[2] == '\0' && allows_dashdash))
+        {
+          long_arg = true;
+          arg.erase(arg.begin());
+          arg.erase(arg.begin());
+        }
+        else
+        {
+          long_arg = false;
+          arg.erase(arg.begin()); // -- is - in opt.short_names
+        }
       }
       else
       {
@@ -97,8 +81,22 @@ CmdOptions::ValueMapping CmdOptions::parse(int argc, const char** argv)
     }
     else
     {
-      handle_unrecognized_option(arg);
-      continue;
+      if(has_empty_arg)
+      {
+        auto it = std::find_if(opts.begin(), opts.end(), [arg](const Option& opt)
+                               { return std::find(opt.short_names.begin(), opt.short_names.end(), "") != opt.short_names.end(); });
+        assert(it != opts.end());
+
+        if(dynamic_cast<TaggedValue<std::vector<std::string>>*>(it->value.get()) != nullptr)
+          --i;
+        it->value->parse(i, argc, argv);
+        continue;
+      }
+      else
+      {
+        handle_unrecognized_option(arg);
+        continue;
+      }
     }
 
     if(long_arg)
@@ -112,8 +110,7 @@ CmdOptions::ValueMapping CmdOptions::parse(int argc, const char** argv)
       }
       else
       {
-        for(; it != opts.end(); ++it)
-          it->value->parse(i, argc, argv);
+        it->value->parse(i, argc, argv);
       }
     }
     else
@@ -121,7 +118,7 @@ CmdOptions::ValueMapping CmdOptions::parse(int argc, const char** argv)
       auto it = std::find_if(opts.begin(), opts.end(),
                 [arg](const Option& opt)
                 { return std::find_if(opt.short_names.begin(), opt.short_names.end(), [arg](const std::string& str)
-                                                                          { return arg.find(str) != std::string::npos; }) != opt.short_names.end(); });
+                                                                          { return !str.empty() && arg.find(str) != std::string::npos; }) != opt.short_names.end(); });
       do
       {
         if(it == opts.end())
@@ -131,6 +128,8 @@ CmdOptions::ValueMapping CmdOptions::parse(int argc, const char** argv)
         }
         else
         {
+          if(arg[0] == '-' && dynamic_cast<TaggedValue<std::vector<std::string>>*>(it->value.get()) != nullptr)
+            --i;
           it->value->parse(i, argc, argv);
         }
         it = std::find_if(std::next(it), opts.end(),

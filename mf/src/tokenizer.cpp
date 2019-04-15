@@ -4,6 +4,9 @@ Tokenizer::Tokenizer(const char* module, std::istream& handle)
   : module(module), handle(handle), linebuf(), row(1), col(0), token_data_table()
 {  }
 
+const char* Tokenizer::module_name() const
+{ return module; }
+
 Token Tokenizer::get()
 {
   void* data = nullptr;
