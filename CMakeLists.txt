@@ -28,6 +28,7 @@ add_executable(mf mf/src/main.cpp
                   mf/src/tokenizer.cpp
                   mf/src/parser.cpp
                   mf/src/ast.cpp
-                  mf/src/util.cpp)
+                  mf/src/util.cpp
+                  mf/src/ast_printer.cpp)
 
 
