@@ -23,3 +23,5 @@ struct SourceRange
   friend std::ostream& operator<<(std::ostream& os, const SourceRange& src_range);
 };
 
+SourceRange operator+(const SourceRange& left, const SourceRange& right);
+

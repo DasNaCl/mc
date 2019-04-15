@@ -96,7 +96,7 @@ std::uint_fast32_t hash_string(T str)
 {
   if(!(&str[0])) return 0;
   std::uint_fast32_t hash = str[0];
-  for(auto* p = &str[0]; p; p++)
+  for(auto* p = &str[0]; p && *p != '\0'; p++)
     hash ^= (hash * 31) + (*p);
   return hash;
 }

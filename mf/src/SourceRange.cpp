@@ -22,3 +22,12 @@ std::ostream& operator<<(std::ostream& os, const SourceRange& src_range)
   return os;
 }
 
+SourceRange operator+(const SourceRange& left, const SourceRange& right)
+{
+  SourceRange range = left;
+
+  range.widen(right);
+
+  return range;
+}
+
