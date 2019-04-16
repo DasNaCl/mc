@@ -11,6 +11,10 @@
 #define TOK_EXPR_OP(x, v)
 #endif
 
+#ifndef TOK_COMPOUND
+#define TOK_COMPOUND(x, v)
+#endif
+
 TOK(EndOfFile)
 TOK(Undef)
 
@@ -26,6 +30,8 @@ TOK_CONTROL(LBrace, '{')
 TOK_CONTROL(RBrace, '}')
 TOK_CONTROL(LBracket, '[')
 TOK_CONTROL(RBracket, ']')
+
+TOK_COMPOUND(Arrow, "->")
 
 TOK_EXPR_OP(Equal, '=')
 TOK_EXPR_OP(Plus, '+')

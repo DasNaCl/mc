@@ -66,6 +66,28 @@ private:
   SourceRange loc;
 };
 
+struct Unit : public Type
+{
+
+};
+
+struct PrimitiveType : public Type
+{
+public:
+  PrimitiveType(Symbol name);
+private:
+  Symbol name;
+};
+
+struct FunctionType : public Type
+{
+public:
+  FunctionType(Type::Ptr arg_typ, Type::Ptr ret_typ);
+private:
+  Type::Ptr arg_typ;
+  Type::Ptr ret_typ;
+};
+
 class Identifier : public Statement
 {
 public:
@@ -146,13 +168,14 @@ class Function : public Statement
 public:
   using Ptr = std::shared_ptr<Function>;
 
-  Function(SourceRange loc, const std::vector<Statement::Ptr>& data);
+  Function(SourceRange loc, const std::vector<Statement::Ptr>& data, Type::Ptr ret_typ);
 private:
   void enter(ASTVisitor& vis) override;
   void visit(ASTVisitor& vis) override;
   void leave(ASTVisitor& vis) override;
 private:
   std::vector<Statement::Ptr> data;
+  Type::Ptr ret_typ;
 };
 
 class ExpressionStatement : public Statement

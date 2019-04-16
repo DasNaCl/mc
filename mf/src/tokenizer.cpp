@@ -77,8 +77,13 @@ Token Tokenizer::get()
       kind = TokenKind::Character;
     break;
 
-  case '+':
   case '-':
+    if(accept(">"))
+    {
+      kind = TokenKind::Arrow;
+      break;
+    }
+  case '+':
   case '*':
   case '/':
   case '(':
@@ -146,6 +151,19 @@ char Tokenizer::read()
   return ch;
 }
 
+bool Tokenizer::accept(std::string substr)
+{
+  if(col + substr.size() < linebuf.size())
+  {
+    for(std::size_t c = col; c < col + substr.size(); ++c)
+      if(linebuf[c] != substr[c - col])
+        return false;
+    col += substr.size();
+    return true;
+  }
+  return false;
+}
+
 
 Token::operator std::string() const
 {
@@ -170,6 +188,8 @@ Token::operator std::string() const
   case TokenKind::RBrace: return "RBrace";
   case TokenKind::LBracket: return "RBracket";
   case TokenKind::RBracket: return "RBracket";
+
+  case TokenKind::Arrow: return "Arrow";
 
   case TokenKind::Equal: return "Equal";
   case TokenKind::Plus: return "Plus";

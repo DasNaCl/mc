@@ -18,7 +18,6 @@ Statement::Statement(SourceRange loc)
 std::uint_fast64_t Statement::gid() const
 { return id; }
 
-
 Expression::Expression(SourceRange loc)
   : id(gid_counter++), loc(loc)
 {  }
@@ -28,6 +27,15 @@ SourceRange Expression::source_range()
 
 std::uint_fast64_t Expression::gid() const
 { return id; }
+
+PrimitiveType::PrimitiveType(Symbol name)
+  : Type(), name(name)
+{  }
+
+FunctionType::FunctionType(Type::Ptr arg_typ, Type::Ptr ret_typ)
+  : Type(), arg_typ(arg_typ), ret_typ(ret_typ)
+{  }
+
 
 Identifier::Identifier(SourceRange loc, Symbol symbol)
   : Statement(loc), symbol(symbol)
@@ -52,8 +60,8 @@ Block::Block(SourceRange loc, const std::vector<Statement::Ptr>& statements)
   : Statement(loc), statements(statements)
 {  }
 
-Function::Function(SourceRange loc, const std::vector<Statement::Ptr>& data)
-  : Statement(loc), data(data)
+Function::Function(SourceRange loc, const std::vector<Statement::Ptr>& data, Type::Ptr ret_typ)
+  : Statement(loc), data(data), ret_typ(ret_typ)
 {  }
 
 ExpressionStatement::ExpressionStatement(Expression::Ptr expr)

@@ -1,14 +1,28 @@
 #include <parser.hpp>
 #include <tokenizer.hpp>
 
+#include <tsl/bhopscotch_set.h>
+
 #include <cassert>
+
+static constexpr std::uint_fast32_t type_ids[] = { hash_string("byte"),
+                                                   hash_string("char"),  hash_string("uchar"),
+                                                   hash_string("short"), hash_string("ushort"),
+                                                   hash_string("int"),   hash_string("uint"),
+                                                   hash_string("long"),  hash_string("ulong") };
+static constexpr std::size_t type_ids_len = sizeof(type_ids) / sizeof(type_ids[0]);
 
 struct Parser
 {
 public:
   Parser(Tokenizer& tokenizer)
     : tokenizer(tokenizer), ast()
-  { next_token(); next_token(); next_token(); }
+  {
+    next_token(); next_token(); next_token();
+
+    for(std::size_t i = 0; i < type_ids_len; ++i)
+      type_identifiers.emplace(type_ids[i]);
+  }
   
   std::vector<Statement::Ptr> parse() &&
   {
@@ -47,12 +61,19 @@ private:
     if(!accept(kind))
       ; // error
   }
+
+  bool lookup_type_id(const char* identifier)
+  {
+    return type_identifiers.find(hash_string(identifier)) != type_identifiers.end();
+  }
 private:
   Tokenizer& tokenizer;
   std::vector<Statement::Ptr> ast;
 
   Token current_token;
   std::pair<Token, Token> lookahead;
+
+  tsl::bhopscotch_set<std::uint_fast32_t> type_identifiers;
 
 private:
   // parsers
@@ -66,7 +87,7 @@ private:
     std::vector<Statement::Ptr> data;
 
     TokenKind last = TokenKind::Undef;
-    while(!peek(TokenKind::LBrace))
+    while(!peek(TokenKind::Arrow))
     {
       if(peek(TokenKind::Id) && last != TokenKind::Id)
       {
@@ -112,8 +133,10 @@ private:
       // TODO: emit error
       assert(false);
     }
+    expect(TokenKind::Arrow);
+    auto ret_typ = parse_type();
     data.push_back(parse_block());
-    return std::make_shared<Function>(range, data);
+    return std::make_shared<Function>(range, data, ret_typ);
   }
 
   Statement::Ptr parse_block()
@@ -201,6 +224,50 @@ private:
       left = led(t.kind, left);
     }
     return left;
+  }
+
+  Type::Ptr parse_type(Type::Ptr type = nullptr)
+  {
+    do
+    {
+      switch(current_token.kind)
+      {
+      default: return type;
+
+      case TokenKind::Id: // char, int, uchar, uint, short, ushort
+        if(lookup_type_id(reinterpret_cast<const char*>(current_token.data)))
+        {
+          Symbol name = reinterpret_cast<const char*>(current_token.data);
+          expect(TokenKind::Id);
+          type = std::make_shared<PrimitiveType>(name);
+        }
+        else
+        {
+          //TODO: Eimt error
+        }
+       break;
+
+      case TokenKind::LParen:  // (), (() -> ()), (int -> ()), ((int, int) -> ()) (((int)))
+        expect(TokenKind::LParen);
+        if(accept(TokenKind::RParen))
+        {
+          type = std::make_shared<Unit>();
+        }
+        else
+        {
+          type = parse_type(type);
+
+          expect(TokenKind::RParen);
+        }
+       break;
+
+      case TokenKind::Arrow:
+        expect(TokenKind::Arrow);
+        auto ret = parse_type();
+        type = std::make_shared<FunctionType>(type, ret);
+      break;
+      }
+    } while(true);
   }
 };
 

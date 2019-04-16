@@ -140,11 +140,11 @@ template<typename T>
 T& CmdOptions::Value::get()
 { return static_cast<TaggedValue<T>&>(*this).val; }
 
-template<typename T>
-std::uint_fast32_t hash_string(T str)
+template<typename T, typename H = std::uint_fast32_t>
+constexpr H hash_string(T str)
 {
   if(!(&str[0])) return 0;
-  std::uint_fast32_t hash = str[0];
+  H hash = str[0];
   for(auto* p = &str[0]; p && *p != '\0'; p++)
     hash ^= (hash * 31) + (*p);
   return hash;
@@ -154,13 +154,22 @@ struct Symbol
 {
   Symbol(const std::string& str);
   Symbol(const char* str);
+  Symbol(const Symbol& s);
+  Symbol(Symbol&& s);
+  ~Symbol() noexcept;
+
+  Symbol& operator=(const std::string& str);
+  Symbol& operator=(const char* str);
+  Symbol& operator=(const Symbol& s);
+  Symbol& operator=(Symbol&& s);
 
   friend std::ostream& operator<<(std::ostream& os, const Symbol& s);
+private:
+  static std::string& lookup_or_emplace(std::uint_fast32_t hash, const char* str);
 private:
   thread_local static tsl::hopscotch_map<std::uint_fast32_t, std::string> symbols;
 
   std::uint_fast32_t hash;
-  std::string& str;
 };
 
 

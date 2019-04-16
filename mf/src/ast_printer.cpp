@@ -18,9 +18,6 @@ void ASTPrinter::leave(Function::Ptr)
 void ASTPrinter::leave(ExpressionStatement::Ptr)
 { if(depth > 0) --depth; }
 
-void ASTPrinter::visit(Statement::Ptr stmt)
-{  }
-
 void ASTPrinter::visit(Identifier::Ptr stmt)
 {
   streamout() << "[Identifier gid:" << stmt->gid()  << " name: \"" << stmt->id() << "\"]\n";

@@ -4,9 +4,10 @@
 
 struct ASTPrinter : ASTVisitor
 {
-  void leave(Block::Ptr stmt) override;
+  void leave(Block::Ptr) override;
+  void leave(Function::Ptr) override;
+  void leave(ExpressionStatement::Ptr) override;
 
-  void visit(Statement::Ptr stmt) override;
   void visit(Identifier::Ptr id) override;
   void visit(Declaration::Ptr decl) override;
   void visit(Parameter::Ptr param) override;
