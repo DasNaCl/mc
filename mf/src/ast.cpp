@@ -105,8 +105,14 @@ LiteralExpression::LiteralExpression(Token tok)
 
 Type::Ptr LiteralExpression::type()
 {
-  // TODO: emit PrimitiveType
-  return std::make_shared<Unit>();
+  switch(kind)
+  {
+  default: return std::make_shared<Unit>();
+
+  case TokenKind::Number:     return std::make_shared<PrimitiveType>(Symbol("long"));
+  case TokenKind::Character:  return std::make_shared<PrimitiveType>(Symbol("char"));
+  case TokenKind::String:     assert(false && "Strings are currently unsupported"); return std::make_shared<Unit>(); // TODO
+  }
 }
 
 BinaryExpression::BinaryExpression(Expression::Ptr left, Expression::Ptr right)

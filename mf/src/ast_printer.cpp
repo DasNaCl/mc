@@ -66,4 +66,33 @@ void ASTPrinter::visit(BinaryExpression::Ptr bin_expr)
   streamout() << "(Binary <" << bin_expr->gid() << ">)\n";
 }
 
+void ASTPrinter::acquaint(Unit::Ptr type)
+{
+
+}
+
+void ASTPrinter::acquaint(PrimitiveType::Ptr type)
+{
+
+}
+
+void ASTPrinter::acquaint(FunctionType::Ptr type)
+{
+
+}
+
+void ASTPrinter::acquaint(TemplateType::Ptr type)
+{
+
+}
+
+void ASTPrinter::acquaint(TupleType::Ptr type)
+{
+
+}
+
+void ASTPrinter::acquaint(ArgsType::Ptr type)
+{
+
+}
 

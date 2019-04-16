@@ -63,12 +63,14 @@ private:
 
 struct Unit : public Type
 {
-
+  using Ptr = std::shared_ptr<Unit>;
 };
 
 struct PrimitiveType : public Type
 {
 public:
+  using Ptr = std::shared_ptr<PrimitiveType>;
+
   PrimitiveType(Symbol name);
 private:
   Symbol name;
@@ -77,6 +79,8 @@ private:
 struct FunctionType : public Type
 {
 public:
+  using Ptr = std::shared_ptr<FunctionType>;
+
   FunctionType(Type::Ptr arg_typ, Type::Ptr ret_typ);
 private:
   Type::Ptr arg_typ;
@@ -85,12 +89,14 @@ private:
 
 struct TemplateType : public Type
 {
-
+  using Ptr = std::shared_ptr<TemplateType>;
 };
 
 struct TupleType : public Type
 {
 public:
+  using Ptr = std::shared_ptr<TupleType>;
+
   TupleType(const std::vector<Type::Ptr>& types);
 private:
   std::vector<Type::Ptr> types;
@@ -99,6 +105,8 @@ private:
 struct ArgsType : public Type
 {
 public:
+  using Ptr = std::shared_ptr<ArgsType>;
+
   ArgsType(const std::vector<Type::Ptr>& types);
 private:
   std::vector<Type::Ptr> types;

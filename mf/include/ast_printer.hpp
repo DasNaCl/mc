@@ -18,6 +18,14 @@ struct ASTPrinter : ASTVisitor
 
   void visit(LiteralExpression::Ptr lit_expr) override;
   void visit(BinaryExpression::Ptr bin_expr) override;
+
+  // inner visiting functions for types
+  void acquaint(Unit::Ptr typ);
+  void acquaint(PrimitiveType::Ptr typ);
+  void acquaint(FunctionType::Ptr typ);
+  void acquaint(TemplateType::Ptr typ);
+  void acquaint(TupleType::Ptr typ);
+  void acquaint(ArgsType::Ptr typ);
 private:
   std::ostream& streamout();
 private:
