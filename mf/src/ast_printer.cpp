@@ -20,50 +20,50 @@ void ASTPrinter::leave(ExpressionStatement::Ptr)
 
 void ASTPrinter::visit(Identifier::Ptr stmt)
 {
-  streamout() << "[Identifier gid:" << stmt->gid()  << " name: \"" << stmt->id() << "\"]\n";
+  streamout() << "[Identifier <" << stmt->gid()  << "> \"" << stmt->id() << "\"]\n";
 }
 
 void ASTPrinter::visit(Declaration::Ptr decl)
 {
-  streamout() << "[Declaration " << decl->gid() << "]\n";
+  streamout() << "[Declaration <" << decl->gid() << ">]\n";
 }
 
 void ASTPrinter::visit(Parameter::Ptr param)
 {
-  streamout() << "[Param " << param->gid() << "]\n";
+  streamout() << "[Param <" << param->gid() << ">]\n";
 }
 
 void ASTPrinter::visit(Parameters::Ptr params)
 {
-  streamout() << "[Parameters " << params->gid() << "]\n";
+  streamout() << "[Parameters <" << params->gid() << ">]\n";
 }
 
 void ASTPrinter::visit(Block::Ptr block)
 {
-  streamout() << "[Block " << block->gid() << "]\n";
+  streamout() << "[Block <" << block->gid() << ">]\n";
   ++depth;
 }
 
 void ASTPrinter::visit(Function::Ptr fun)
 {
-  streamout() << "[Function " << fun->gid() << "]\n";
+  streamout() << "[Function <" << fun->gid() << ">]\n";
   ++depth;
 }
 
 void ASTPrinter::visit(ExpressionStatement::Ptr expr_stmt)
 {
-  streamout() << "[ExpressionStatement " << expr_stmt->gid() << "]\n";
+  streamout() << "[ExpressionStatement <" << expr_stmt->gid() << ">]\n";
   ++depth;
 }
 
 void ASTPrinter::visit(LiteralExpression::Ptr lit_expr)
 {
-  streamout() << "(Literal " << lit_expr->gid() << ")\n";
+  streamout() << "(Literal <" << lit_expr->gid() << ">)\n";
 }
 
 void ASTPrinter::visit(BinaryExpression::Ptr bin_expr)
 {
-  streamout() << "(Binary " << bin_expr->gid() << ")\n";
+  streamout() << "(Binary <" << bin_expr->gid() << ">)\n";
 }
 
 
