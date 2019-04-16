@@ -17,22 +17,65 @@ Expression::Expression(SourceRange loc)
 SourceRange Expression::source_range()
 { return loc; }
 
+void Unit::visit(ASTVisitor& vis)
+{
+  vis.visit(std::static_pointer_cast<Unit>(shared_from_this()));
+}
+
 PrimitiveType::PrimitiveType(Symbol name)
   : Type(), name(name)
 {  }
+
+void PrimitiveType::visit(ASTVisitor& vis)
+{
+  vis.visit(std::static_pointer_cast<PrimitiveType>(shared_from_this()));
+}
+
+Symbol PrimitiveType::symbol() const
+{ return name; }
+
+void Type::visit(ASTVisitor& vis)
+{
+  vis.visit(shared_from_this());
+}
 
 FunctionType::FunctionType(Type::Ptr arg_typ, Type::Ptr ret_typ)
   : Type(), arg_typ(arg_typ), ret_typ(ret_typ)
 {  }
 
+void FunctionType::visit(ASTVisitor& vis)
+{
+  vis.visit(std::static_pointer_cast<FunctionType>(shared_from_this()));
+}
+
+void TemplateType::visit(ASTVisitor& vis)
+{
+  vis.visit(std::static_pointer_cast<TemplateType>(shared_from_this()));
+}
+
 TupleType::TupleType(const std::vector<Type::Ptr>& types)
-  : Type(), types(types)
+  : Type(), data(types)
 {  }
 
-ArgsType::ArgsType(const std::vector<Type::Ptr>& types)
-  : Type(), types(types)
+void TupleType::visit(ASTVisitor& vis)
+{
+  vis.visit(std::static_pointer_cast<TupleType>(shared_from_this()));
+}
+
+const std::vector<Type::Ptr>& TupleType::types() const
+{ return data; }
+
+ArgsType::ArgsType(const std::vector<std::variant<ArgsType::_Id, Type::Ptr>>& types)
+  : Type(), data(types)
 {  }
 
+void ArgsType::visit(ASTVisitor& vis)
+{
+  vis.visit(std::static_pointer_cast<ArgsType>(shared_from_this()));
+}
+
+const std::vector<std::variant<ArgsType::_Id, Type::Ptr>>& ArgsType::types() const
+{ return data; }
 
 Identifier::Identifier(SourceRange loc, Symbol symbol)
   : Statement(loc), symbol(symbol), typ(std::make_shared<TemplateType>()) // TODO: fix type
@@ -83,11 +126,13 @@ Function::Function(SourceRange loc, const std::vector<Statement::Ptr>& data, Typ
 
 Type::Ptr Function::type()
 {
-  std::vector<Type::Ptr> types;
+  std::vector<std::variant<ArgsType::_Id, Type::Ptr>> types;
   for(auto& stmt : data)
   {
     if(std::dynamic_pointer_cast<Parameters>(stmt))
       types.emplace_back(stmt->type());
+    else
+      types.emplace_back(ArgsType::_Id{});
   }
   return std::make_shared<FunctionType>(std::make_shared<ArgsType>(types), ret_typ);
 }
@@ -135,6 +180,21 @@ void ASTVisitor::visit_all(const std::vector<Statement::Ptr>& ast)
   {
     stmt->visit(*this);
   }
+}
+
+void ASTVisitor::distribute(Type::Ptr type)
+{
+  type->visit(*this);
+}
+
+void ASTVisitor::distribute(Statement::Ptr stmt)
+{
+  stmt->visit(*this);
+}
+
+void ASTVisitor::distribute(Expression::Ptr expr)
+{
+  expr->visit(*this);
 }
 
 

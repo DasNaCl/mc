@@ -3,6 +3,7 @@
 #include <SourceRange.hpp>
 #include <tokenizer.hpp>
 #include <util.hpp>
+#include <variant>
 #include <memory>
 
 struct ASTVisitor;
@@ -17,8 +18,11 @@ private:
 
 class Type : public GIDTag, public std::enable_shared_from_this<Type>
 {
+  friend struct ASTVisitor;
 public:
   using Ptr = std::shared_ptr<Type>;
+protected:
+  virtual void visit(ASTVisitor& vis); 
 };
 
 class Statement : public GIDTag, public std::enable_shared_from_this<Statement>
@@ -63,25 +67,37 @@ private:
 
 struct Unit : public Type
 {
+  friend struct ASTVisitor;
   using Ptr = std::shared_ptr<Unit>;
+
+private:
+  void visit(ASTVisitor& vis) override;
 };
 
 struct PrimitiveType : public Type
 {
+  friend struct ASTVisitor;
 public:
   using Ptr = std::shared_ptr<PrimitiveType>;
 
   PrimitiveType(Symbol name);
+
+  Symbol symbol() const;
+private:
+  void visit(ASTVisitor& vis) override;
 private:
   Symbol name;
 };
 
 struct FunctionType : public Type
 {
+  friend struct ASTVisitor;
 public:
   using Ptr = std::shared_ptr<FunctionType>;
 
   FunctionType(Type::Ptr arg_typ, Type::Ptr ret_typ);
+private:
+  void visit(ASTVisitor& vis) override;
 private:
   Type::Ptr arg_typ;
   Type::Ptr ret_typ;
@@ -89,27 +105,43 @@ private:
 
 struct TemplateType : public Type
 {
+  friend struct ASTVisitor;
   using Ptr = std::shared_ptr<TemplateType>;
+
+private:
+  void visit(ASTVisitor& vis) override;
 };
 
 struct TupleType : public Type
 {
+  friend struct ASTVisitor;
 public:
   using Ptr = std::shared_ptr<TupleType>;
 
   TupleType(const std::vector<Type::Ptr>& types);
+
+  const std::vector<Type::Ptr>& types() const;
 private:
-  std::vector<Type::Ptr> types;
+  void visit(ASTVisitor& vis) override;
+private:
+  std::vector<Type::Ptr> data;
 };
 
 struct ArgsType : public Type
 {
+  friend struct ASTVisitor;
 public:
+  struct _Id {};
+
   using Ptr = std::shared_ptr<ArgsType>;
 
-  ArgsType(const std::vector<Type::Ptr>& types);
+  ArgsType(const std::vector<std::variant<_Id, Type::Ptr>>& types);
+
+  const std::vector<std::variant<_Id, Type::Ptr>>& types() const;
 private:
-  std::vector<Type::Ptr> types;
+  void visit(ASTVisitor& vis) override;
+private:
+  std::vector<std::variant<_Id, Type::Ptr>> data;
 };
 
 class Identifier : public Statement
@@ -269,6 +301,10 @@ private:
 struct ASTVisitor
 {
   void visit_all(const std::vector<Statement::Ptr>& ast);
+  
+  void distribute(Statement::Ptr type);
+  void distribute(Expression::Ptr type);
+  void distribute(Type::Ptr type);
 
   virtual void enter(Statement::Ptr stmt) {  }
   virtual void enter(Identifier::Ptr id) {  }
@@ -310,5 +346,14 @@ struct ASTVisitor
   virtual void leave(Expression::Ptr expr) {  }
   virtual void leave(LiteralExpression::Ptr lit_expr) {  }
   virtual void leave(BinaryExpression::Ptr bin_expr) {  }
+
+
+  virtual void visit(Type::Ptr type) {  }
+  virtual void visit(Unit::Ptr type) {  }
+  virtual void visit(PrimitiveType::Ptr type) {  }
+  virtual void visit(FunctionType::Ptr type) {  }
+  virtual void visit(TemplateType::Ptr type) {  }
+  virtual void visit(TupleType::Ptr type) {  }
+  virtual void visit(ArgsType::Ptr type) {  }
 };
 

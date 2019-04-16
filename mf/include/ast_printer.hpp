@@ -20,12 +20,12 @@ struct ASTPrinter : ASTVisitor
   void visit(BinaryExpression::Ptr bin_expr) override;
 
   // inner visiting functions for types
-  void acquaint(Unit::Ptr typ);
-  void acquaint(PrimitiveType::Ptr typ);
-  void acquaint(FunctionType::Ptr typ);
-  void acquaint(TemplateType::Ptr typ);
-  void acquaint(TupleType::Ptr typ);
-  void acquaint(ArgsType::Ptr typ);
+  void visit(Unit::Ptr typ) override;
+  void visit(PrimitiveType::Ptr typ) override;
+  void visit(FunctionType::Ptr typ) override;
+  void visit(TemplateType::Ptr typ) override;
+  void visit(TupleType::Ptr typ) override;
+  void visit(ArgsType::Ptr typ) override;
 private:
   std::ostream& streamout();
 private:

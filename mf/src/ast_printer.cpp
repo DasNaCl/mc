@@ -20,79 +20,108 @@ void ASTPrinter::leave(ExpressionStatement::Ptr)
 
 void ASTPrinter::visit(Identifier::Ptr stmt)
 {
-  streamout() << "[Identifier <" << stmt->gid()  << "> \"" << stmt->id() << "\"]\n";
+  streamout() << "[Identifier <" << stmt->gid()  << "> \"" << stmt->id() << "\" {";
+  distribute(stmt->type());
+  std::cout << "}]\n";
 }
 
 void ASTPrinter::visit(Declaration::Ptr decl)
 {
-  streamout() << "[Declaration <" << decl->gid() << ">]\n";
+  streamout() << "[Declaration <" << decl->gid() << "> {";
+  distribute(decl->type());
+  std::cout << "]\n";
 }
 
 void ASTPrinter::visit(Parameter::Ptr param)
 {
-  streamout() << "[Param <" << param->gid() << ">]\n";
+  streamout() << "[Param <" << param->gid() << "> {";
+  distribute(param->type());
+  std::cout << "]\n";
 }
 
 void ASTPrinter::visit(Parameters::Ptr params)
 {
-  streamout() << "[Parameters <" << params->gid() << ">]\n";
+  streamout() << "[Parameters <" << params->gid() << "> {";
+  distribute(params->type());
+  std::cout << "}]\n";
 }
 
 void ASTPrinter::visit(Block::Ptr block)
 {
-  streamout() << "[Block <" << block->gid() << ">]\n";
+  streamout() << "[Block <" << block->gid() << "> {";
+  distribute(block->type());
+  std::cout << "}]\n";
   ++depth;
 }
 
 void ASTPrinter::visit(Function::Ptr fun)
 {
-  streamout() << "[Function <" << fun->gid() << ">]\n";
+  streamout() << "[Function <" << fun->gid() << "> {";
+  distribute(fun->type());
+  std::cout << "}]\n";
   ++depth;
 }
 
 void ASTPrinter::visit(ExpressionStatement::Ptr expr_stmt)
 {
-  streamout() << "[ExpressionStatement <" << expr_stmt->gid() << ">]\n";
+  streamout() << "[ExpressionStatement <" << expr_stmt->gid() << "> {";
+  distribute(expr_stmt->type());
+  std::cout << "}]\n";
   ++depth;
 }
 
 void ASTPrinter::visit(LiteralExpression::Ptr lit_expr)
 {
-  streamout() << "(Literal <" << lit_expr->gid() << ">)\n";
+  streamout() << "(Literal <" << lit_expr->gid() << "> {";
+  distribute(lit_expr->type());
+  std::cout << "})\n";
 }
 
 void ASTPrinter::visit(BinaryExpression::Ptr bin_expr)
 {
-  streamout() << "(Binary <" << bin_expr->gid() << ">)\n";
+  streamout() << "(Binary <" << bin_expr->gid() << "> {";
+  distribute(bin_expr->type());
+  std::cout << "})\n";
 }
 
-void ASTPrinter::acquaint(Unit::Ptr type)
+void ASTPrinter::visit(Unit::Ptr type)
 {
-
+  std::cout << "()";
 }
 
-void ASTPrinter::acquaint(PrimitiveType::Ptr type)
+void ASTPrinter::visit(PrimitiveType::Ptr type)
 {
-
+  std::cout << type->symbol();
 }
 
-void ASTPrinter::acquaint(FunctionType::Ptr type)
+void ASTPrinter::visit(FunctionType::Ptr type)
 {
-
+  // TODO
 }
 
-void ASTPrinter::acquaint(TemplateType::Ptr type)
+void ASTPrinter::visit(TemplateType::Ptr type)
 {
-
+  std::cout << "Polymorphic";
 }
 
-void ASTPrinter::acquaint(TupleType::Ptr type)
+void ASTPrinter::visit(TupleType::Ptr type)
 {
-
+  auto v = type->types();
+  std::cout << "(";
+  for(auto& t : v)
+    distribute(t);
+  std::cout << ")";
 }
 
-void ASTPrinter::acquaint(ArgsType::Ptr type)
+void ASTPrinter::visit(ArgsType::Ptr type)
 {
-
+  auto v = type->types();
+  for(auto& var : v)
+  {
+    if(std::holds_alternative<ArgsType::_Id>(var))
+      std::cout << "-";
+    else
+      distribute(std::get<Type::Ptr>(var));
+  }
 }
 
