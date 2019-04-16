@@ -12,6 +12,12 @@ std::ostream& ASTPrinter::streamout()
 void ASTPrinter::leave(Block::Ptr)
 { if(depth > 0) --depth; }
 
+void ASTPrinter::leave(Function::Ptr)
+{ if(depth > 0) --depth; }
+
+void ASTPrinter::leave(ExpressionStatement::Ptr)
+{ if(depth > 0) --depth; }
+
 void ASTPrinter::visit(Statement::Ptr stmt)
 {  }
 
