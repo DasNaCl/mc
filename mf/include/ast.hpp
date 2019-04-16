@@ -30,6 +30,8 @@ public:
   using Ptr = std::shared_ptr<Statement>;
 
   Statement(SourceRange loc);
+
+  virtual Type::Ptr type() = 0;
 protected:
   virtual void enter(ASTVisitor& vis);
   virtual void visit(ASTVisitor& vis);
@@ -49,6 +51,8 @@ public:
   Expression(SourceRange loc);
 
   SourceRange source_range();
+
+  virtual Type::Ptr type() = 0;
 protected:
   virtual void enter(ASTVisitor& vis);
   virtual void visit(ASTVisitor& vis);
@@ -79,6 +83,27 @@ private:
   Type::Ptr ret_typ;
 };
 
+struct TemplateType : public Type
+{
+
+};
+
+struct TupleType : public Type
+{
+public:
+  TupleType(const std::vector<Type::Ptr>& types);
+private:
+  std::vector<Type::Ptr> types;
+};
+
+struct ArgsType : public Type
+{
+public:
+  ArgsType(const std::vector<Type::Ptr>& types);
+private:
+  std::vector<Type::Ptr> types;
+};
+
 class Identifier : public Statement
 {
 public:
@@ -87,12 +112,15 @@ public:
   Identifier(SourceRange loc, Symbol symbol);
 
   Symbol id() const;
+
+  Type::Ptr type() override;
 private:
   void enter(ASTVisitor& vis) override;
   void visit(ASTVisitor& vis) override;
   void leave(ASTVisitor& vis) override;
 private:
   Symbol symbol;
+  Type::Ptr typ;
 };
 
 class Declaration : public Statement
@@ -101,6 +129,8 @@ public:
   using Ptr = std::shared_ptr<Declaration>;
 
   Declaration(SourceRange range, Identifier::Ptr identifier, Type::Ptr type);
+
+  Type::Ptr type() override;
 protected:
   void enter(ASTVisitor& vis) override;
   void visit(ASTVisitor& vis) override;
@@ -108,7 +138,7 @@ protected:
 private:
   SourceRange range;
   Identifier::Ptr identifier;
-  Type::Ptr type;
+  Type::Ptr typ;
 };
 
 class Parameter : public Declaration
@@ -117,13 +147,15 @@ public:
   using Ptr = std::shared_ptr<Parameter>;
 
   Parameter(SourceRange range, Identifier::Ptr identifier, Type::Ptr type);
+
+  Type::Ptr type() override;
 private:
   void enter(ASTVisitor& vis) override;
   void visit(ASTVisitor& vis) override;
   void leave(ASTVisitor& vis) override;
 private:
   Identifier::Ptr identifier;
-  Type::Ptr type;
+  Type::Ptr typ;
 };
 
 class Parameters : public Statement
@@ -132,6 +164,8 @@ public:
   using Ptr = std::shared_ptr<Parameters>;
 
   Parameters(SourceRange range, const std::vector<Parameter::Ptr>& list);
+
+  Type::Ptr type() override;
 private:
   void enter(ASTVisitor& vis) override;
   void visit(ASTVisitor& vis) override;
@@ -146,6 +180,8 @@ public:
   using Ptr = std::shared_ptr<Block>;
 
   Block(SourceRange range, const std::vector<Statement::Ptr>& statements);
+
+  Type::Ptr type() override;
 private:
   void enter(ASTVisitor& vis) override;
   void visit(ASTVisitor& vis) override;
@@ -160,6 +196,8 @@ public:
   using Ptr = std::shared_ptr<Function>;
 
   Function(SourceRange loc, const std::vector<Statement::Ptr>& data, Type::Ptr ret_typ);
+
+  Type::Ptr type() override;
 private:
   void enter(ASTVisitor& vis) override;
   void visit(ASTVisitor& vis) override;
@@ -175,6 +213,8 @@ public:
   using Ptr = std::shared_ptr<ExpressionStatement>;
 
   ExpressionStatement(Expression::Ptr expr);
+
+  Type::Ptr type() override;
 private:
   void enter(ASTVisitor& vis) override;
   void visit(ASTVisitor& vis) override;
@@ -189,6 +229,8 @@ public:
   using Ptr = std::shared_ptr<LiteralExpression>;
 
   LiteralExpression(Token kind);
+
+  Type::Ptr type() override;
 private:
   void enter(ASTVisitor& vis) override;
   void visit(ASTVisitor& vis) override;
@@ -204,6 +246,8 @@ public:
   using Ptr = std::shared_ptr<BinaryExpression>;
 
   BinaryExpression(Expression::Ptr left, Expression::Ptr right);
+
+  Type::Ptr type() override;
 private:
   void enter(ASTVisitor& vis) override;
   void visit(ASTVisitor& vis) override;

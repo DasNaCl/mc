@@ -25,46 +25,102 @@ FunctionType::FunctionType(Type::Ptr arg_typ, Type::Ptr ret_typ)
   : Type(), arg_typ(arg_typ), ret_typ(ret_typ)
 {  }
 
+TupleType::TupleType(const std::vector<Type::Ptr>& types)
+  : Type(), types(types)
+{  }
+
+ArgsType::ArgsType(const std::vector<Type::Ptr>& types)
+  : Type(), types(types)
+{  }
+
 
 Identifier::Identifier(SourceRange loc, Symbol symbol)
-  : Statement(loc), symbol(symbol)
+  : Statement(loc), symbol(symbol), typ(std::make_shared<TemplateType>()) // TODO: fix type
 {  }
 
 Symbol Identifier::id() const
 { return symbol; }
 
+Type::Ptr Identifier::type()
+{ return typ; }
+
 Declaration::Declaration(SourceRange loc, Identifier::Ptr identifier, Type::Ptr type)
-  : Statement(loc), identifier(identifier), type(type)
+  : Statement(loc), identifier(identifier), typ(type)
 {  }
+
+Type::Ptr Declaration::type()
+{ return typ; }
 
 Parameter::Parameter(SourceRange range, Identifier::Ptr identifier, Type::Ptr type)
   : Declaration(range, identifier, type)
 {  }
 
+Type::Ptr Parameter::type()
+{ return typ; }
+
 Parameters::Parameters(SourceRange loc, const std::vector<Parameter::Ptr>& list)
   : Statement(loc), list(list)
 {  }
+
+Type::Ptr Parameters::type()
+{
+  std::vector<Type::Ptr> types;
+  for(auto& p : list)
+    types.emplace_back(p->type());
+  return std::make_shared<TupleType>(types);
+}
 
 Block::Block(SourceRange loc, const std::vector<Statement::Ptr>& statements)
   : Statement(loc), statements(statements)
 {  }
 
+Type::Ptr Block::type()
+{ return std::make_shared<Unit>(); }
+
 Function::Function(SourceRange loc, const std::vector<Statement::Ptr>& data, Type::Ptr ret_typ)
   : Statement(loc), data(data), ret_typ(ret_typ)
 {  }
+
+Type::Ptr Function::type()
+{
+  std::vector<Type::Ptr> types;
+  for(auto& stmt : data)
+  {
+    if(std::dynamic_pointer_cast<Parameters>(stmt))
+      types.emplace_back(stmt->type());
+  }
+  return std::make_shared<FunctionType>(std::make_shared<ArgsType>(types), ret_typ);
+}
 
 ExpressionStatement::ExpressionStatement(Expression::Ptr expr)
   : Statement(expr->source_range()), expr(expr)
 {  }
 
+Type::Ptr ExpressionStatement::type()
+{ return expr->type(); }
+
 LiteralExpression::LiteralExpression(Token tok)
   : Expression(tok.range), kind(tok.kind), data(tok.data)
 {  }
+
+Type::Ptr LiteralExpression::type()
+{
+  // TODO: emit PrimitiveType
+  return std::make_shared<Unit>();
+}
 
 BinaryExpression::BinaryExpression(Expression::Ptr left, Expression::Ptr right)
   : Expression(left->source_range() + right->source_range()), left(left), right(right)
 {  }
 
+Type::Ptr BinaryExpression::type()
+{
+  // TODO
+  auto lt = left->type();
+  auto rt = right->type();
+
+  return lt;
+}
 
 
 void ASTVisitor::visit_all(const std::vector<Statement::Ptr>& ast)
