@@ -7,21 +7,21 @@
 
 struct ASTVisitor;
 
-class Type : public std::enable_shared_from_this<Type>
+struct GIDTag
 {
-public:
-  using Ptr = std::shared_ptr<Type>;
-  
-  Type();
-
   std::uint_fast64_t gid() const;
 private:
   static std::uint_fast64_t gid_counter;
-
-  std::uint_fast64_t id;
+  std::uint_fast64_t gid_val { gid_counter++ };
 };
 
-class Statement : public std::enable_shared_from_this<Statement>
+class Type : public GIDTag, public std::enable_shared_from_this<Type>
+{
+public:
+  using Ptr = std::shared_ptr<Type>;
+};
+
+class Statement : public GIDTag, public std::enable_shared_from_this<Statement>
 {
   friend struct ASTVisitor;
   friend class Function;
@@ -30,20 +30,15 @@ public:
   using Ptr = std::shared_ptr<Statement>;
 
   Statement(SourceRange loc);
-
-  std::uint_fast64_t gid() const;
 protected:
   virtual void enter(ASTVisitor& vis);
   virtual void visit(ASTVisitor& vis);
   virtual void leave(ASTVisitor& vis);
 private:
-  static std::uint_fast64_t gid_counter;
-
-  std::uint_fast64_t id;
   SourceRange loc;
 };
 
-class Expression : public std::enable_shared_from_this<Expression>
+class Expression : public GIDTag, public std::enable_shared_from_this<Expression>
 {
   friend struct ASTVisitor;
   friend class ExpressionStatement;
@@ -54,15 +49,11 @@ public:
   Expression(SourceRange loc);
 
   SourceRange source_range();
-  std::uint_fast64_t gid() const;
 protected:
   virtual void enter(ASTVisitor& vis);
   virtual void visit(ASTVisitor& vis);
   virtual void leave(ASTVisitor& vis);
 private:
-  static std::uint_fast64_t gid_counter;
-
-  std::uint_fast64_t id;
   SourceRange loc;
 };
 

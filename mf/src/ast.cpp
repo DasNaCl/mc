@@ -1,32 +1,21 @@
 #include <ast.hpp>
 
-std::uint_fast64_t Statement::gid_counter = 0;
-std::uint_fast64_t Type::gid_counter = 0;
-std::uint_fast64_t Expression::gid_counter = 0;
+std::uint_fast64_t GIDTag::gid_counter = 0;
 
-Type::Type()
-  : id(gid_counter++)
-{  }
+std::uint_fast64_t GIDTag::gid() const
+{ return gid_val; }
 
-std::uint_fast64_t Type::gid() const
-{ return id; }
 
 Statement::Statement(SourceRange loc)
-  : id(gid_counter++), loc(loc)
+  : loc(loc)
 {  }
 
-std::uint_fast64_t Statement::gid() const
-{ return id; }
-
 Expression::Expression(SourceRange loc)
-  : id(gid_counter++), loc(loc)
+  : loc(loc)
 {  }
 
 SourceRange Expression::source_range()
 { return loc; }
-
-std::uint_fast64_t Expression::gid() const
-{ return id; }
 
 PrimitiveType::PrimitiveType(Symbol name)
   : Type(), name(name)
