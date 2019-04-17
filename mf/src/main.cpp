@@ -46,7 +46,6 @@ int main(int argc, const char* argv[])
       std::cout << "Abstract syntax tree of module \"" << tokenizer.module_name() << "\": \n";
       ASTPrinter printer;
       printer.visit_all(astnodes);
-      std::cout << astnodes.size() << "\n";
     }
   }
   else if(map["t"]->get<bool>())
