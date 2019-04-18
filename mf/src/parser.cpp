@@ -42,18 +42,34 @@ public:
     return ::emit_error(tokenizer.module_name(), current_token.range.column_beg, current_token.range.row_beg);
   }
 
+  void skip_to_next_toplevel()
+  {
+    bool another_fn = true;
+    do
+    {
+      while(!peek(TokenKind::RBrace) && !peek(TokenKind::EndOfFile))
+      {
+        next_token();
+      }
+      next_token();
+
+      another_fn = (n1_peek(TokenKind::Id) && n2_peek(TokenKind::LParen))
+                || (n1_peek(TokenKind::LParen) && n2_peek(TokenKind::Id));
+    } while(!another_fn && !peek(TokenKind::EndOfFile));
+  }
+
   ErrorExpression::Ptr error_expr(SourceRange range)
-  { next_token(); return std::make_shared<ErrorExpression>(range); } // TODO: Add more error context info
+  { return std::make_shared<ErrorExpression>(range); } // TODO: Add more error context info
   ErrorExpression::Ptr error_expr()
-  { next_token(); return std::make_shared<ErrorExpression>(current_token.range); } // TODO: Add more error context info
+  { return std::make_shared<ErrorExpression>(current_token.range); } // TODO: Add more error context info
 
   ErrorStatement::Ptr error_stmt(SourceRange range)
-  { next_token(); return std::make_shared<ErrorStatement>(range); } // TODO: Add more error context info
+  { return std::make_shared<ErrorStatement>(range); } // TODO: Add more error context info
   ErrorStatement::Ptr error_stmt()
-  { next_token(); return std::make_shared<ErrorStatement>(current_token.range); } // TODO: Add more error context info
+  { return std::make_shared<ErrorStatement>(current_token.range); } // TODO: Add more error context info
 
   ErrorType::Ptr error_type()
-  { next_token(); return std::make_shared<ErrorType>(); } // TODO: Add more error context info
+  { return std::make_shared<ErrorType>(); } // TODO: Add more error context info
 private:
   void next_token()
   {
@@ -64,6 +80,12 @@ private:
   
   bool peek(TokenKind kind) const
   { return current_token.kind == kind; }
+
+  bool n1_peek(TokenKind kind) const
+  { return lookahead.first.kind == kind; }
+
+  bool n2_peek(TokenKind kind) const
+  { return lookahead.second.kind == kind; }
 
   bool accept(TokenKind kind)
   {
@@ -136,7 +158,6 @@ private:
         {
           // two consecutive identifiers
           emit_error() << "Function was already declared with identifier \"" << last_ids << "\"";
-          return error_stmt();
         }
         else if(last == TokenKind::RParen)
         {
@@ -145,15 +166,14 @@ private:
             emit_error() << "Anonymous function already has a parameter list.";
           else
             emit_error() << "Function \"" << last_ids << "\" already has a parameter list.";
-          return error_stmt();
         }
         else
         {
           // different error
           emit_error() << "Could not parse function.";
-          return error_stmt();
         }
-        last = TokenKind::Undef;
+        skip_to_next_toplevel();
+        return error_stmt();
       }
     }
     if(is_top_level && data.size() < 2)

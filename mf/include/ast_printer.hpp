@@ -15,7 +15,9 @@ struct ASTPrinter : ASTVisitor
   void visit(Block::Ptr block) override;
   void visit(Function::Ptr fun) override;
   void visit(ExpressionStatement::Ptr expr_stmt) override;
+  void visit(ErrorStatement::Ptr err_stmt) override;
 
+  void visit(ErrorExpression::Ptr err_expr) override;
   void visit(LiteralExpression::Ptr lit_expr) override;
   void visit(BinaryExpression::Ptr bin_expr) override;
 
@@ -26,6 +28,7 @@ struct ASTPrinter : ASTVisitor
   void visit(TemplateType::Ptr typ) override;
   void visit(TupleType::Ptr typ) override;
   void visit(ArgsType::Ptr typ) override;
+  void visit(ErrorType::Ptr typ) override;
 private:
   std::ostream& streamout();
 private:

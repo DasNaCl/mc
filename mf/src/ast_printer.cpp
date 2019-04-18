@@ -18,6 +18,13 @@ void ASTPrinter::leave(Function::Ptr)
 void ASTPrinter::leave(ExpressionStatement::Ptr)
 { if(depth > 0) --depth; }
 
+void ASTPrinter::visit(ErrorStatement::Ptr err_stmt)
+{
+  streamout() << "[ErrorStatement <" << err_stmt->gid() << "> {";
+  distribute(err_stmt->type());
+  std::cout << "}]\n";
+}
+
 void ASTPrinter::visit(Identifier::Ptr stmt)
 {
   streamout() << "[Identifier <" << stmt->gid()  << "> \"" << stmt->id() << "\" {";
@@ -68,6 +75,13 @@ void ASTPrinter::visit(ExpressionStatement::Ptr expr_stmt)
   distribute(expr_stmt->type());
   std::cout << "}]\n";
   ++depth;
+}
+
+void ASTPrinter::visit(ErrorExpression::Ptr err_expr)
+{
+  streamout() << "(Error <" << err_expr->gid() << "> {";
+  distribute(err_expr->type());
+  std::cout << "})\n";
 }
 
 void ASTPrinter::visit(LiteralExpression::Ptr lit_expr)
@@ -123,5 +137,10 @@ void ASTPrinter::visit(ArgsType::Ptr type)
     else
       distribute(std::get<Type::Ptr>(var));
   }
+}
+
+void ASTPrinter::visit(ErrorType::Ptr type)
+{
+  std::cout << "(ErrorType)";
 }
 

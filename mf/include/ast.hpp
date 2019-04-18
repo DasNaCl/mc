@@ -22,7 +22,7 @@ class Type : public GIDTag, public std::enable_shared_from_this<Type>
 public:
   using Ptr = std::shared_ptr<Type>;
 protected:
-  virtual void visit(ASTVisitor& vis); 
+  virtual void visit(ASTVisitor& vis) = 0;
 };
 
 class Statement : public GIDTag, public std::enable_shared_from_this<Statement>
@@ -148,6 +148,9 @@ struct ErrorType : public Type
 {
   friend struct ASTVisitor;
   using Ptr = std::shared_ptr<ErrorType>;
+
+private:
+  void visit(ASTVisitor& vis) override;
 };
 
 class ErrorStatement : public Statement
@@ -351,6 +354,7 @@ struct ASTVisitor
   virtual void enter(ExpressionStatement::Ptr expr_stmt) {  }
 
   virtual void enter(Expression::Ptr expr) {  }
+  virtual void enter(ErrorExpression::Ptr err_expr) {  }
   virtual void enter(LiteralExpression::Ptr lit_expr) {  }
   virtual void enter(BinaryExpression::Ptr bin_expr) {  }
 
@@ -366,6 +370,7 @@ struct ASTVisitor
   virtual void visit(ExpressionStatement::Ptr expr_stmt) {  }
 
   virtual void visit(Expression::Ptr expr) {  }
+  virtual void visit(ErrorExpression::Ptr err_expr) {  }
   virtual void visit(LiteralExpression::Ptr lit_expr) {  }
   virtual void visit(BinaryExpression::Ptr bin_expr) {  }
 
@@ -381,6 +386,7 @@ struct ASTVisitor
   virtual void leave(ExpressionStatement::Ptr expr_stmt) {  }
 
   virtual void leave(Expression::Ptr expr) {  }
+  virtual void leave(ErrorExpression::Ptr err_expr) {  }
   virtual void leave(LiteralExpression::Ptr lit_expr) {  }
   virtual void leave(BinaryExpression::Ptr bin_expr) {  }
 

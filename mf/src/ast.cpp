@@ -22,6 +22,11 @@ void Unit::visit(ASTVisitor& vis)
   vis.visit(std::static_pointer_cast<Unit>(shared_from_this()));
 }
 
+void ErrorType::visit(ASTVisitor& vis)
+{
+  vis.visit(std::static_pointer_cast<ErrorType>(shared_from_this()));
+}
+
 PrimitiveType::PrimitiveType(Symbol name)
   : Type(), name(name)
 {  }
@@ -33,11 +38,6 @@ void PrimitiveType::visit(ASTVisitor& vis)
 
 Symbol PrimitiveType::symbol() const
 { return name; }
-
-void Type::visit(ASTVisitor& vis)
-{
-  vis.visit(shared_from_this());
-}
 
 FunctionType::FunctionType(Type::Ptr arg_typ, Type::Ptr ret_typ)
   : Type(), arg_typ(arg_typ), ret_typ(ret_typ)
