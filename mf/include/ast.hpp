@@ -144,6 +144,26 @@ private:
   std::vector<std::variant<_Id, Type::Ptr>> data;
 };
 
+struct ErrorType : public Type
+{
+  friend struct ASTVisitor;
+  using Ptr = std::shared_ptr<ErrorType>;
+};
+
+class ErrorStatement : public Statement
+{
+public:
+  using Ptr = std::shared_ptr<ErrorStatement>;
+
+  ErrorStatement(SourceRange loc);
+
+  Type::Ptr type() override;
+private:
+  void enter(ASTVisitor& vis) override;
+  void visit(ASTVisitor& vis) override;
+  void leave(ASTVisitor& vis) override;
+};
+
 class Identifier : public Statement
 {
 public:
@@ -263,6 +283,20 @@ private:
   Expression::Ptr expr;
 };
 
+class ErrorExpression : public Expression
+{
+public:
+  using Ptr = std::shared_ptr<ErrorExpression>;
+
+  ErrorExpression(SourceRange loc);
+
+  Type::Ptr type() override;
+private:
+  void enter(ASTVisitor& vis) override;
+  void visit(ASTVisitor& vis) override;
+  void leave(ASTVisitor& vis) override;
+};
+
 class LiteralExpression : public Expression
 {
 public:
@@ -307,6 +341,7 @@ struct ASTVisitor
   void distribute(Type::Ptr type);
 
   virtual void enter(Statement::Ptr stmt) {  }
+  virtual void enter(ErrorStatement::Ptr err) {  }
   virtual void enter(Identifier::Ptr id) {  }
   virtual void enter(Declaration::Ptr decl) {  }
   virtual void enter(Parameter::Ptr param) {  }
@@ -321,6 +356,7 @@ struct ASTVisitor
 
 
   virtual void visit(Statement::Ptr stmt) {  }
+  virtual void visit(ErrorStatement::Ptr err) {  }
   virtual void visit(Identifier::Ptr id) {  }
   virtual void visit(Declaration::Ptr decl) {  }
   virtual void visit(Parameter::Ptr param) {  }
@@ -335,6 +371,7 @@ struct ASTVisitor
 
 
   virtual void leave(Statement::Ptr stmt) {  }
+  virtual void leave(ErrorStatement::Ptr err) {  }
   virtual void leave(Identifier::Ptr id) {  }
   virtual void leave(Declaration::Ptr decl) {  }
   virtual void leave(Parameter::Ptr param) {  }
@@ -349,6 +386,7 @@ struct ASTVisitor
 
 
   virtual void visit(Type::Ptr type) {  }
+  virtual void visit(ErrorType::Ptr type) {  }
   virtual void visit(Unit::Ptr type) {  }
   virtual void visit(PrimitiveType::Ptr type) {  }
   virtual void visit(FunctionType::Ptr type) {  }

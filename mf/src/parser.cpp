@@ -41,6 +41,19 @@ public:
   {
     return ::emit_error(tokenizer.module_name(), current_token.range.column_beg, current_token.range.row_beg);
   }
+
+  ErrorExpression::Ptr error_expr(SourceRange range)
+  { next_token(); return std::make_shared<ErrorExpression>(range); } // TODO: Add more error context info
+  ErrorExpression::Ptr error_expr()
+  { next_token(); return std::make_shared<ErrorExpression>(current_token.range); } // TODO: Add more error context info
+
+  ErrorStatement::Ptr error_stmt(SourceRange range)
+  { next_token(); return std::make_shared<ErrorStatement>(range); } // TODO: Add more error context info
+  ErrorStatement::Ptr error_stmt()
+  { next_token(); return std::make_shared<ErrorStatement>(current_token.range); } // TODO: Add more error context info
+
+  ErrorType::Ptr error_type()
+  { next_token(); return std::make_shared<ErrorType>(); } // TODO: Add more error context info
 private:
   void next_token()
   {
@@ -123,7 +136,7 @@ private:
         {
           // two consecutive identifiers
           emit_error() << "Function was already declared with identifier \"" << last_ids << "\"";
-          assert(false);
+          return error_stmt();
         }
         else if(last == TokenKind::RParen)
         {
@@ -132,13 +145,13 @@ private:
             emit_error() << "Anonymous function already has a parameter list.";
           else
             emit_error() << "Function \"" << last_ids << "\" already has a parameter list.";
-          assert(false);
+          return error_stmt();
         }
         else
         {
           // different error
           emit_error() << "Could not parse function.";
-          assert(false);
+          return error_stmt();
         }
         last = TokenKind::Undef;
       }
@@ -149,7 +162,7 @@ private:
         emit_error() << "Top-level functions must not be anonymous.";
       else
         emit_error() << "Top-level function \"" << last_ids << "\" has no parameter list.";
-      assert(false);
+      return error_stmt();
     }
     expect(TokenKind::Arrow);
     auto ret_typ = parse_type();
@@ -262,7 +275,7 @@ private:
         else
         {
           emit_error() << "Unknown type \"" << reinterpret_cast<const char*>(current_token.data) << "\".";
-          assert(false);
+          return error_type();
         }
        break;
 

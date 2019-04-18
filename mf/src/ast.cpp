@@ -77,6 +77,13 @@ void ArgsType::visit(ASTVisitor& vis)
 const std::vector<std::variant<ArgsType::_Id, Type::Ptr>>& ArgsType::types() const
 { return data; }
 
+ErrorStatement::ErrorStatement(SourceRange loc)
+  : Statement(loc)
+{  }
+
+Type::Ptr ErrorStatement::type()
+{ return std::make_shared<ErrorType>(); }
+
 Identifier::Identifier(SourceRange loc, Symbol symbol)
   : Statement(loc), symbol(symbol), typ(std::make_shared<TemplateType>()) // TODO: fix type
 {  }
@@ -140,6 +147,13 @@ Type::Ptr Function::type()
 ExpressionStatement::ExpressionStatement(Expression::Ptr expr)
   : Statement(expr->source_range()), expr(expr)
 {  }
+
+ErrorExpression::ErrorExpression(SourceRange loc)
+  : Expression(loc)
+{  }
+
+Type::Ptr ErrorExpression::type()
+{ return std::make_shared<ErrorType>(); }
 
 Type::Ptr ExpressionStatement::type()
 { return expr->type(); }
@@ -211,6 +225,26 @@ void Statement::visit(ASTVisitor& visitor)
 void Statement::leave(ASTVisitor& visitor)
 {
   visitor.leave(shared_from_this());
+}
+
+void ErrorStatement::enter(ASTVisitor& visitor)
+{
+  Statement::enter(visitor);
+  visitor.enter(std::static_pointer_cast<ErrorStatement>(shared_from_this()));
+}
+
+void ErrorStatement::visit(ASTVisitor& visitor)
+{
+  ErrorStatement::enter(visitor);
+  Statement::visit(visitor);
+  visitor.visit(std::static_pointer_cast<ErrorStatement>(shared_from_this()));
+  ErrorStatement::leave(visitor);
+}
+
+void ErrorStatement::leave(ASTVisitor& visitor)
+{
+  visitor.leave(std::static_pointer_cast<ErrorStatement>(shared_from_this()));
+  Statement::leave(visitor);
 }
 
 void Identifier::enter(ASTVisitor& visitor)
@@ -368,6 +402,26 @@ void Expression::visit(ASTVisitor& visitor)
 void Expression::leave(ASTVisitor& visitor)
 {
   visitor.leave(shared_from_this());
+}
+
+void ErrorExpression::enter(ASTVisitor& visitor)
+{
+  Expression::enter(visitor);
+  visitor.enter(std::static_pointer_cast<ErrorExpression>(shared_from_this()));
+}
+
+void ErrorExpression::visit(ASTVisitor& visitor)
+{
+  ErrorExpression::enter(visitor);
+  Expression::visit(visitor);
+  visitor.visit(std::static_pointer_cast<ErrorExpression>(shared_from_this()));
+  ErrorExpression::leave(visitor);
+}
+
+void ErrorExpression::leave(ASTVisitor& visitor)
+{
+  visitor.leave(std::static_pointer_cast<ErrorExpression>(shared_from_this()));
+  Expression::leave(visitor);
 }
 
 void LiteralExpression::enter(ASTVisitor& visitor)
