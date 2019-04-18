@@ -182,6 +182,7 @@ private:
         emit_error() << "Top-level functions must not be anonymous.";
       else
         emit_error() << "Top-level function \"" << last_ids << "\" has no parameter list.";
+      skip_to_next_toplevel();
       return error_stmt();
     }
     expect(TokenKind::Arrow);
