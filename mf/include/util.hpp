@@ -172,4 +172,6 @@ private:
   std::uint_fast32_t hash;
 };
 
+std::ostream& operator<<(std::ostream& os, const std::vector<Symbol>& symbs);
+
 

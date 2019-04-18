@@ -22,6 +22,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/hopscotch-map)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/mf/include/)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/hopscotch-map/include/)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/spdlog/include/)
 
 add_executable(mf mf/src/main.cpp
                   mf/src/SourceRange.cpp
@@ -29,6 +30,7 @@ add_executable(mf mf/src/main.cpp
                   mf/src/parser.cpp
                   mf/src/ast.cpp
                   mf/src/util.cpp
-                  mf/src/ast_printer.cpp)
+                  mf/src/ast_printer.cpp
+                  mf/src/log.cpp)
 
 

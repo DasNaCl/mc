@@ -1,5 +1,6 @@
 #include <parser.hpp>
 #include <tokenizer.hpp>
+#include <log.hpp>
 
 #include <tsl/bhopscotch_set.h>
 
@@ -34,6 +35,11 @@ public:
       ast.emplace_back(parse_root());
     }
     return std::move(ast);
+  }
+
+  MessageCollector emit_error()
+  {
+    return ::emit_error(tokenizer.module_name(), current_token.range.column_beg, current_token.range.row_beg);
   }
 private:
   void next_token()
@@ -112,6 +118,7 @@ private:
         // emit error
         if(last == TokenKind::Id)
         {
+          emit_error() << "hello";
           // two consecutive identifiers
           assert(false);
         }

@@ -239,3 +239,10 @@ std::string& Symbol::lookup_or_emplace(std::uint_fast32_t hash, const char* str)
   return symbols[hash];
 }
 
+std::ostream& operator<<(std::ostream& os, const std::vector<Symbol>& symbs)
+{
+  for(auto& s : symbs)
+    os << s;
+  return os;
+}
+
