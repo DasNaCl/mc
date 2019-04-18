@@ -1,8 +1,10 @@
 #include <log.hpp>
 #include <util.hpp>
 
-#include <spdlog/spdlog.h>
-#include <spdlog/fmt/ostr.h>
+#include <fmt/ostream.h>
+#include <fmt/color.h>
+
+#include <iostream>
 
 enum class LoggerMessageType
 {
@@ -14,9 +16,6 @@ enum class LoggerMessageType
 class Logger
 {
 public:
-  Logger()
-  { spdlog::set_pattern("%v"); }
-
   void update(LoggerMessageType type, const std::string& module, std::uint_fast32_t column, std::uint_fast32_t row)
   {
     this->type = type;
@@ -31,21 +30,22 @@ public:
   }
   void print(const std::string& message)
   {
-    // print message
+    fmt::print(fg(fmt::terminal_color::white), "{}:{}:{}: ", module, column, row);
     switch(type)
     {
     case LoggerMessageType::Error:
-      spdlog::error("{}:{}:{}: error: {}", module, column, row, message);
+      fmt::print(fg(fmt::terminal_color::red) | (fmt::emphasis::bold), "error: ");
     break;
 
     case LoggerMessageType::Warning:
-      spdlog::warn("{}:{}:{}: warning: {}", module, column, row, message);
+      fmt::print(fg(fmt::terminal_color::bright_black) | (fmt::emphasis::bold), "warning: ");
     break;
 
     case LoggerMessageType::Info:
-      spdlog::info("{}:{}:{}: info: {}", module, column, row, message);
+      fmt::print(fg(fmt::terminal_color::blue) | (fmt::emphasis::bold), "info: ");
     break;
     }
+    fmt::print(fg(fmt::terminal_color::white), "{}\n", message);
   }
 private:
   LoggerMessageType type;
@@ -79,7 +79,27 @@ MessageCollector emit_error(const std::string& module, std::uint_fast32_t column
   return logger.collect();
 }
 
+MessageCollector emit_info(const std::string& module, std::uint_fast32_t column, std::uint_fast32_t row)
+{
+  logger.update(LoggerMessageType::Info, module, column, row);
+  
+  return logger.collect();
+}
+
+MessageCollector emit_warn(const std::string& module, std::uint_fast32_t column, std::uint_fast32_t row)
+{
+  logger.update(LoggerMessageType::Warning, module, column, row);
+  
+  return logger.collect();
+}
+
 const MessageCollector& operator<<(const MessageCollector& mc, const char* message)
+{
+  mc.message += message;
+  return mc;
+}
+
+const MessageCollector& operator<<(const MessageCollector& mc, const std::string& message)
 {
   mc.message += message;
   return mc;

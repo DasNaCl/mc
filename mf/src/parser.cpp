@@ -93,12 +93,16 @@ private:
     std::vector<Statement::Ptr> data;
 
     TokenKind last = TokenKind::Undef;
+    std::string last_ids;
     while(!peek(TokenKind::Arrow))
     {
       if(peek(TokenKind::Id) && last != TokenKind::Id)
       {
         data.push_back(std::make_shared<Identifier>(current_token.range,
                                                     Symbol(reinterpret_cast<const char*>(current_token.data))));
+        if(!last_ids.empty())
+          last_ids += "-";
+        last_ids += reinterpret_cast<const char*>(current_token.data);
         expect(TokenKind::Id);
         last = TokenKind::Id;
       }
@@ -115,29 +119,36 @@ private:
       }
       else
       {
-        // emit error
         if(last == TokenKind::Id)
         {
-          emit_error() << "hello";
           // two consecutive identifiers
+          emit_error() << "Function was already declared with identifier \"" << last_ids << "\"";
           assert(false);
         }
         else if(last == TokenKind::RParen)
         {
           // two consecutive parameter lists
+          if(last_ids.empty())
+            emit_error() << "Anonymous function already has a parameter list.";
+          else
+            emit_error() << "Function \"" << last_ids << "\" already has a parameter list.";
           assert(false);
         }
         else
         {
           // different error
+          emit_error() << "Could not parse function.";
           assert(false);
         }
         last = TokenKind::Undef;
       }
     }
-    if(is_top_level && data.size() < 2) // cant have a parameter list
+    if(is_top_level && data.size() < 2)
     {
-      // TODO: emit error
+      if(last_ids.empty())
+        emit_error() << "Top-level functions must not be anonymous.";
+      else
+        emit_error() << "Top-level function \"" << last_ids << "\" has no parameter list.";
       assert(false);
     }
     expect(TokenKind::Arrow);
@@ -181,7 +192,7 @@ private:
     // TODO: Lookup operator in table
     switch(kind)
     {
-    default: return 0;
+      default: return 0; // error: Unknown token
 
     case TokenKind::Plus: return 100;
     }
@@ -250,7 +261,8 @@ private:
         }
         else
         {
-          //TODO: Eimt error
+          emit_error() << "Unknown type \"" << reinterpret_cast<const char*>(current_token.data) << "\".";
+          assert(false);
         }
        break;
 

@@ -11,6 +11,7 @@ class MessageCollector
 public:
   friend class Logger;
   friend const MessageCollector& operator<<(const MessageCollector& lg, const char* message);
+  friend const MessageCollector& operator<<(const MessageCollector& lg, const std::string& message);
   ~MessageCollector();
 private:
   MessageCollector(Logger& log);
@@ -20,5 +21,7 @@ private:
 };
 
 MessageCollector emit_error(const std::string& module, std::uint_fast32_t column, std::uint_fast32_t row);
+MessageCollector emit_info(const std::string& module, std::uint_fast32_t column, std::uint_fast32_t row);
+MessageCollector emit_warn(const std::string& module, std::uint_fast32_t column, std::uint_fast32_t row);
 
 
