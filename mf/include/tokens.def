@@ -24,6 +24,8 @@ TOK(String)
 TOK(Character)
 
 TOK_CONTROL(Semicolon, ';')
+TOK_CONTROL(DoubleColon, ':')
+TOK_CONTROL(Comma, ',')
 TOK_CONTROL(LParen, '(')
 TOK_CONTROL(RParen, ')')
 TOK_CONTROL(LBrace, '{')

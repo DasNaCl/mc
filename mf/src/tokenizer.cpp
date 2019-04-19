@@ -102,6 +102,8 @@ Token Tokenizer::get()
   case '[':
   case ']':
   case '=':
+  case ':':
+  case ',':
   case ';':
       kind = static_cast<TokenKind>(ch);
     break;
@@ -190,6 +192,8 @@ Token::operator std::string() const
   case TokenKind::Character: return "Character";
 
   case TokenKind::Semicolon: return "Semicolon";
+  case TokenKind::DoubleColon: return "DoubleColon";
+  case TokenKind::Comma: return "Comma";
 
   case TokenKind::LParen: return "LParen";
   case TokenKind::RParen: return "RParen";

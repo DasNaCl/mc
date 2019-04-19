@@ -94,19 +94,16 @@ Symbol Identifier::id() const
 Type::Ptr Identifier::type()
 { return typ; }
 
-Declaration::Declaration(SourceRange loc, Identifier::Ptr identifier, Type::Ptr type)
+Declaration::Declaration(SourceRange loc, Statement::Ptr identifier, Type::Ptr type)
   : Statement(loc), identifier(identifier), typ(type)
 {  }
 
 Type::Ptr Declaration::type()
 { return typ; }
 
-Parameter::Parameter(SourceRange range, Identifier::Ptr identifier, Type::Ptr type)
+Parameter::Parameter(SourceRange range, Statement::Ptr identifier, Type::Ptr type)
   : Declaration(range, identifier, type)
 {  }
-
-Type::Ptr Parameter::type()
-{ return typ; }
 
 Parameters::Parameters(SourceRange loc, const std::vector<Parameter::Ptr>& list)
   : Statement(loc), list(list)

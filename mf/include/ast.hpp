@@ -191,7 +191,7 @@ class Declaration : public Statement
 public:
   using Ptr = std::shared_ptr<Declaration>;
 
-  Declaration(SourceRange range, Identifier::Ptr identifier, Type::Ptr type);
+  Declaration(SourceRange range, Statement::Ptr identifier, Type::Ptr type);
 
   Type::Ptr type() override;
 protected:
@@ -200,7 +200,7 @@ protected:
   void leave(ASTVisitor& vis) override;
 private:
   SourceRange range;
-  Identifier::Ptr identifier;
+  Statement::Ptr identifier;
   Type::Ptr typ;
 };
 
@@ -209,16 +209,11 @@ class Parameter : public Declaration
 public:
   using Ptr = std::shared_ptr<Parameter>;
 
-  Parameter(SourceRange range, Identifier::Ptr identifier, Type::Ptr type);
-
-  Type::Ptr type() override;
+  Parameter(SourceRange range, Statement::Ptr identifier, Type::Ptr type);
 private:
   void enter(ASTVisitor& vis) override;
   void visit(ASTVisitor& vis) override;
   void leave(ASTVisitor& vis) override;
-private:
-  Identifier::Ptr identifier;
-  Type::Ptr typ;
 };
 
 class Parameters : public Statement

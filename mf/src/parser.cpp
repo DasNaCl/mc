@@ -13,6 +13,9 @@ static constexpr std::uint_fast32_t type_ids[] = { hash_string("byte"),
                                                    hash_string("long"),  hash_string("ulong") };
 static constexpr std::size_t type_ids_len = sizeof(type_ids) / sizeof(type_ids[0]);
 
+static bool is_type(const char* id)
+{ return std::find(std::begin(type_ids), std::end(type_ids), hash_string(id)) != std::end(type_ids); }
+
 struct Parser
 {
 public:
@@ -133,21 +136,17 @@ private:
     {
       if(peek(TokenKind::Id) && last != TokenKind::Id)
       {
-        data.push_back(std::make_shared<Identifier>(current_token.range,
-                                                    Symbol(reinterpret_cast<const char*>(current_token.data))));
         if(!last_ids.empty())
           last_ids += "-";
         last_ids += reinterpret_cast<const char*>(current_token.data);
-        expect(TokenKind::Id);
+
+        data.push_back(parse_identifier());
         last = TokenKind::Id;
       }
-      else if(peek(TokenKind::LParen) && last != TokenKind::RParen)
+      else if((peek(TokenKind::LParen) && last != TokenKind::RParen)
+           || (peek(TokenKind::Id) && is_type(reinterpret_cast<const char*>(current_token.data))))
       {
-        std::vector<Parameter::Ptr> params;
-        expect(TokenKind::LParen);
-        while(!peek(TokenKind::RParen))
-          params.push_back(parse_parameter());
-        expect(TokenKind::RParen);
+        std::vector<Parameter::Ptr> params = parse_parameters();
 
         data.push_back(std::make_shared<Parameters>(range, params));
         last = TokenKind::RParen;
@@ -208,10 +207,50 @@ private:
     return std::make_shared<Block>(range, statements);
   }
 
+  std::vector<Parameter::Ptr> parse_parameters()
+  {
+    auto range = current_token.range;
+    expect(TokenKind::LParen);
+    std::vector<Parameter::Ptr> pars;
+    if(peek(TokenKind::RParen))
+    {
+      range.widen(current_token.range);
+      expect(TokenKind::RParen);
+
+      // f () -> (), () f -> (), () -> ()
+      pars.emplace_back(std::make_shared<Parameter>(range, nullptr, std::make_shared<Unit>())); 
+      return pars;
+    }
+    do
+    {
+      pars.emplace_back(parse_parameter());
+    } while(accept(TokenKind::Comma)); 
+    expect(TokenKind::RParen);
+    return pars;
+  }
+
   Parameter::Ptr parse_parameter()
   {
-    // TODO
-    return nullptr;
+    auto range = current_token.range; // TODO: fix range to span along `foo: int`?
+    auto id = parse_identifier();
+    expect(TokenKind::DoubleColon);
+    auto typ = parse_type();
+    return std::make_shared<Parameter>(range, id, typ);
+  }
+
+  Statement::Ptr parse_identifier()
+  {
+    auto range = current_token.range;
+    const char* data = reinterpret_cast<const char*>(current_token.data);
+
+    if(is_type(data))
+    {
+      emit_error() << "Type \"" << data << "\" used as identifier.";
+      return error_stmt();
+    }
+
+    expect(TokenKind::Id);
+    return std::make_shared<Identifier>(range, Symbol(data));
   }
 
   Statement::Ptr parse_expression_statement()
