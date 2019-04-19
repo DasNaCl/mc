@@ -1,2 +1,2 @@
-STDIN:7:6: Token: Number
-STDIN:1:8: Token: EndOfFile
+lex/positive/lines.mf:7:6: Token: Number(6)
+lex/positive/lines.mf:1:7: Token: EndOfFile

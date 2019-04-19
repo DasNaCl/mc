@@ -13,25 +13,39 @@ fi
 
 for directory in */; do
   directory=${directory%*/}
-  testcount=$(ls -1q "$directory"/**/*.mcc | wc -l)
+  testcount=$(ls -1q "$directory"/**/*.mf | wc -l)
 
   echo -ne "--- Testing $directory with $testcount tests ---\n\n"
 
   successes=0
   fails=0
-  for f in $directory/**/*.mcc; do  
+  for f in $directory/**/*.mf; do  
     posneg=$(echo -ne "$f" | awk -F/ '{print $(NF-1)}')
     testname=$(echo -ne "$f" | awk -F/ '{print $NF}')
     echo -ne "$posneg test: $testname ...."
-    TESTOUT=$(cat "$f" | exec ${EXE} | colordiff --suppress-common-lines -y ${f%.*}.txt -)
-    TESTRES=$(echo -ne "${TESTOUT}" | wc -l)
+    TESTOUT=$(exec ${directory}/invoke.sh ${EXE} "$f")
+    TESTRES=$(echo -ne "${TESTOUT}" | grep '^' | diff --suppress-common-lines -y ${f%.*}.txt - | wc -l)
 
+    store_file=$(basename ${testname%.*})
+    store="$directory/$posneg/fails/$store_file.res"
     if (( ${TESTRES} > 0 )); then
-      echo -ne " ${RED}FAIL${WHITE} with ${TESTRES} differing lines of output.\n"
+      echo -ne " ${RED}FAIL${WHITE} with ${TESTRES} differing lines of output."
       fails=$(( fails + 1 ))
+
+      mkdir -p "$directory/$posneg/fails"
+
+      touch "$store"
+      echo $(echo -ne "${TESTOUT}" | grep '^' | diff --suppress-common-lines -y ${f%.*}.txt -) > "$store"
+
+      echo -ne " -- For details: cat $store\n"
     else
       echo -ne "${GREEN}SUCCESS${WHITE}.\n"
       successes=$(( successes + 1 ))
+
+      # delete any previous fails
+      if [ -f $store ]; then
+        rm $store
+      fi
     fi
   done
   SUCCCOL="$WHITE"

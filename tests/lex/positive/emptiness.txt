@@ -1,1 +1,1 @@
-STDIN:1:1: Token: EndOfFile
+lex/positive/emptiness.mf:1:1: Token: EndOfFile
