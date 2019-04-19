@@ -43,6 +43,9 @@ Token Tokenizer::get()
       }
       else if('0' <= ch && ch <= '9')
       {
+        std::uint_fast32_t hash = ch;
+        std::string num;
+        num.push_back(ch);
         while(col < linebuf.size())
         {
           ch = linebuf[col++];
@@ -51,8 +54,14 @@ Token Tokenizer::get()
             col--;
             break;
           }
+          num.push_back(ch);
+          hash ^= (hash * 31) + ch;
         }
         kind = TokenKind::Number;
+        auto& v = token_data_table[hash];
+        v.resize(num.size() + 1, 0);
+        std::copy(num.begin(), num.end(), v.begin());
+        data  = &v[0];
       }
       else
         return Token(SourceRange(module.c_str(), beg_col + 1, beg_row, col + 1, row), TokenKind::Undef);
@@ -176,7 +185,7 @@ Token::operator std::string() const
 
   case TokenKind::Id: return std::string("Id(") + std::string(reinterpret_cast<char*>(data)) + ")";
 
-  case TokenKind::Number: return "Number";
+  case TokenKind::Number: return std::string("Number(") + std::string(reinterpret_cast<char*>(data)) + ")";
   case TokenKind::String: return "String";
   case TokenKind::Character: return "Character";
 
