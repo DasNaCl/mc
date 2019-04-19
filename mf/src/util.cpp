@@ -135,7 +135,7 @@ CmdOptions::ValueMapping CmdOptions::parse(int argc, const char** argv)
         it = std::find_if(std::next(it), opts.end(),
                 [arg](const Option& opt)
                 { return std::find_if(opt.short_names.begin(), opt.short_names.end(), [arg](const std::string& str)
-                                                                          { return arg.find(str) != std::string::npos; }) != opt.short_names.end(); });
+                                                                          { return !str.empty() && arg.find(str) != std::string::npos; }) != opt.short_names.end(); });
       } while(it != opts.end());
     }
   }
