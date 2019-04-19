@@ -122,8 +122,13 @@ void ASTPrinter::visit(TupleType::Ptr type)
 {
   auto v = type->types();
   std::cout << "(";
-  for(auto& t : v)
+  for(auto it = v.begin(); it != v.end(); ++it)
+  {
+    auto t = *it;
     distribute(t);
+    if(std::next(it) != v.end())
+      std::cout << ", ";
+  }
   std::cout << ")";
 }
 
