@@ -1,1 +1,11 @@
 foo00 () -> () {  }
+() foo00 () -> () {  }
+() foo00 -> () {  }
+foo00 () foo01 () -> () {  }
+() foo00 () foo01 -> () {  }
+() foo00 () foo01 () -> () {  }
+
+bar1 int -> int {  }
+bar2 (int) -> int {  }
+bar3 int -> (int) {  }
+int bar1 -> int {  }
