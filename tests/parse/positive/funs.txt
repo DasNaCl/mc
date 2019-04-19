@@ -43,3 +43,8 @@ Abstract syntax tree of module "parse/positive/funs.mf":
   [Parameters <97> {(int, int)}]
   [Identifier <98> "bar1" {Polymorphic}]
   [Block <101> {()}]
+[Function <117> {}]
+  [Parameters <107> {(int)}]
+  [Identifier <108> "bar1" {Polymorphic}]
+  [Parameters <114> {(int)}]
+  [Block <116> {()}]

@@ -8,3 +8,4 @@ foo00 () foo01 () -> () {  }
 bar (x:int) -> int {  }
 (x:int) bar1 -> int {  }
 (x:int, y:int) bar1 -> int {  }
+(x:int) bar1 (y:int) -> int {  }
