@@ -24,7 +24,7 @@ for directory in */; do
     testname=$(echo -ne "$f" | awk -F/ '{print $NF}')
     echo -ne "$posneg test: $testname ...."
     TESTOUT=$(exec ${directory}/invoke.sh ${EXE} "$f")
-    TESTRES=$(echo -ne "${TESTOUT}" | grep '^' | diff --suppress-common-lines -y ${f%.*}.txt - | wc -l)
+    TESTRES=$(echo -ne "${TESTOUT}" | grep '^' | perl -pe 's/\033\[[\d;]*m//g' | diff --suppress-common-lines -y ${f%.*}.txt - | wc -l)
 
     store_file=$(basename ${testname%.*})
     store="$directory/$posneg/fails/$store_file.res"
@@ -33,9 +33,10 @@ for directory in */; do
       fails=$(( fails + 1 ))
 
       mkdir -p "$directory/$posneg/fails"
-
       touch "$store"
-      echo $(echo -ne "${TESTOUT}" | grep '^' | diff --suppress-common-lines -y ${f%.*}.txt -) > "$store"
+
+      COLUMW=$(echo -ne "${f%.*}.txt" | wc -c)
+      echo $(echo -ne "${TESTOUT}" | grep '^' | perl -pe 's/\033\[[\d;]*m//g' | diff --width=$COLUMW --suppress-common-lines -y ${f%.*}.txt -) > "$store"
 
       echo -ne " -- For details: cat $store\n"
     else

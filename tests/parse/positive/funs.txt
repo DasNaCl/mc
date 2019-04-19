@@ -1,0 +1,5 @@
+Abstract syntax tree of module "parse/positive/funs.mf": 
+[Function <5> {}]
+  [Identifier <0> "foo00" {Polymorphic}]
+  [Parameters <2> {()}]
+  [Block <4> {()}]
