@@ -157,7 +157,7 @@ private:
         if(last == TokenKind::Id)
         {
           // two consecutive identifiers
-          emit_error() << "Function was already declared with identifier \"" << last_ids << "\"";
+          emit_error() << "Function was already declared with identifier \"" << last_ids << "\".";
         }
         else if(last == TokenKind::RParen)
         {
