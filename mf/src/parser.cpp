@@ -63,16 +63,18 @@ public:
   ErrorExpression::Ptr error_expr()
   { return std::make_shared<ErrorExpression>(current_token.range); } // TODO: Add more error context info
 
-  ErrorStatement::Ptr error_stmt(SourceRange range)
-  { return std::make_shared<ErrorStatement>(range); } // TODO: Add more error context info
   ErrorStatement::Ptr error_stmt()
   { return std::make_shared<ErrorStatement>(current_token.range); } // TODO: Add more error context info
+  ErrorStatement::Ptr error_stmt(SourceRange range)
+  { range.widen(prev_tok_loc); return std::make_shared<ErrorStatement>(range); } // TODO: Add more error context info
 
   ErrorType::Ptr error_type()
   { return std::make_shared<ErrorType>(); } // TODO: Add more error context info
 private:
   void next_token()
   {
+    prev_tok_loc = current_token.range;
+
     current_token = lookahead.first;
     lookahead.first = lookahead.second;
     lookahead.second = tokenizer.get();
@@ -119,6 +121,8 @@ private:
   Token current_token;
   std::pair<Token, Token> lookahead;
 
+  SourceRange prev_tok_loc;
+
   tsl::bhopscotch_set<std::uint_fast32_t> type_identifiers;
 
 private:
@@ -148,14 +152,14 @@ private:
       else if((peek(TokenKind::LParen) && last != TokenKind::RParen)
            || (peek(TokenKind::Id) && lookup_type_id(reinterpret_cast<const char*>(current_token.data))))
       {
+        SourceRange pars_range = current_token.range;
         std::optional<std::vector<Parameter::Ptr>> params = parse_parameters();
         if(!params.has_value())
         {
           skip_to_next_toplevel();
-          return error_stmt();
+          return error_stmt(pars_range);
         }
-
-        data.push_back(std::make_shared<Parameters>(range, params.value()));
+        data.push_back(std::make_shared<Parameters>(pars_range, params.value()));
         last = TokenKind::RParen;
       }
       else
@@ -179,7 +183,7 @@ private:
           emit_error() << "Could not parse function.";
         }
         skip_to_next_toplevel();
-        return error_stmt();
+        return error_stmt(range);
       }
     }
     if(is_top_level && data.size() < 2)
@@ -189,14 +193,16 @@ private:
       else
         emit_error() << "Top-level function \"" << last_ids << "\" has no parameter list.";
       skip_to_next_toplevel();
-      return error_stmt();
+      return error_stmt(range);
     }
     if(!expect(TokenKind::Arrow))
     {
-      return error_stmt();
+      skip_to_next_toplevel();
+      return error_stmt(range);
     }
     auto ret_typ = parse_type();
-    data.push_back(parse_block());
+    data.push_back(parse_block()); // last token was '}'
+    range.widen(prev_tok_loc);
     return std::make_shared<Function>(range, data, ret_typ);
   }
 
@@ -204,7 +210,7 @@ private:
   {
     SourceRange range = current_token.range;
     if(!expect(TokenKind::LBrace))
-      return error_stmt();
+      return error_stmt(range);
 
     std::vector<Statement::Ptr> statements;
     while(!peek(TokenKind::RBrace))
@@ -213,7 +219,7 @@ private:
       statements.emplace_back(stmt);
     }
     if(!expect(TokenKind::RBrace))
-      return error_stmt();
+      return error_stmt(range);
     range.widen(current_token.range);
 
     return std::make_shared<Block>(range, statements);
@@ -227,8 +233,8 @@ private:
     std::vector<Parameter::Ptr> pars;
     if(peek(TokenKind::RParen))
     {
-      range.widen(current_token.range);
       expect(TokenKind::RParen);
+      range.widen(prev_tok_loc);
 
       // f () -> (), () f -> (), () -> ()
       pars.emplace_back(std::make_shared<Parameter>(range, nullptr, std::make_shared<Unit>())); 
@@ -249,11 +255,12 @@ private:
 
   std::optional<Parameter::Ptr> parse_parameter()
   {
-    auto range = current_token.range; // TODO: fix range to span along `foo: int`?
+    auto range = current_token.range;
     auto id = parse_identifier();
     if(!expect(TokenKind::DoubleColon))
       return std::nullopt;
     auto typ = parse_type();
+    range.widen(prev_tok_loc);
     return std::make_shared<Parameter>(range, id, typ);
   }
 
