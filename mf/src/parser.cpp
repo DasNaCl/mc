@@ -191,7 +191,10 @@ private:
       skip_to_next_toplevel();
       return error_stmt();
     }
-    expect(TokenKind::Arrow);
+    if(!expect(TokenKind::Arrow))
+    {
+      return error_stmt();
+    }
     auto ret_typ = parse_type();
     data.push_back(parse_block());
     return std::make_shared<Function>(range, data, ret_typ);
@@ -200,7 +203,8 @@ private:
   Statement::Ptr parse_block()
   {
     SourceRange range = current_token.range;
-    expect(TokenKind::LBrace);
+    if(!expect(TokenKind::LBrace))
+      return error_stmt();
 
     std::vector<Statement::Ptr> statements;
     while(!peek(TokenKind::RBrace))
@@ -208,7 +212,8 @@ private:
       auto stmt = parse_expression_statement();
       statements.emplace_back(stmt);
     }
-    expect(TokenKind::RBrace);
+    if(!expect(TokenKind::RBrace))
+      return error_stmt();
     range.widen(current_token.range);
 
     return std::make_shared<Block>(range, statements);
@@ -231,17 +236,23 @@ private:
     }
     do
     {
-      pars.emplace_back(parse_parameter());
+      auto par = parse_parameter();
+      if(!par.has_value())
+        return std::nullopt;
+
+      pars.emplace_back(par.value());
     } while(accept(TokenKind::Comma)); 
-    expect(TokenKind::RParen);
+    if(!expect(TokenKind::RParen))
+      return std::nullopt;
     return pars;
   }
 
-  Parameter::Ptr parse_parameter()
+  std::optional<Parameter::Ptr> parse_parameter()
   {
     auto range = current_token.range; // TODO: fix range to span along `foo: int`?
     auto id = parse_identifier();
-    expect(TokenKind::DoubleColon);
+    if(!expect(TokenKind::DoubleColon))
+      return std::nullopt;
     auto typ = parse_type();
     return std::make_shared<Parameter>(range, id, typ);
   }
@@ -257,7 +268,8 @@ private:
       return error_stmt();
     }
 
-    expect(TokenKind::Id);
+    if(!expect(TokenKind::Id))
+      return error_stmt();
     return std::make_shared<Identifier>(range, Symbol(data));
   }
 
