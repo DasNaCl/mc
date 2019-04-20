@@ -96,6 +96,9 @@ public:
   using Ptr = std::shared_ptr<FunctionType>;
 
   FunctionType(Type::Ptr arg_typ, Type::Ptr ret_typ);
+
+  Type::Ptr parameter_type() const;
+  Type::Ptr return_type() const;
 private:
   void visit(ASTVisitor& vis) override;
 private:

@@ -97,10 +97,15 @@ private:
     return false;
   }
 
-  void expect(TokenKind kind)
+  bool expect(TokenKind kind)
   {
     if(!accept(kind))
-      ; // error
+    {
+      emit_error() << "expected token \"" << to_string(kind) << "\" but got \"" << to_string(current_token.kind) << "\".";
+
+      return false;
+    }
+    return true;
   }
 
   bool lookup_type_id(const char* identifier)
@@ -143,9 +148,14 @@ private:
       else if((peek(TokenKind::LParen) && last != TokenKind::RParen)
            || (peek(TokenKind::Id) && lookup_type_id(reinterpret_cast<const char*>(current_token.data))))
       {
-        std::vector<Parameter::Ptr> params = parse_parameters();
+        std::optional<std::vector<Parameter::Ptr>> params = parse_parameters();
+        if(!params.has_value())
+        {
+          skip_to_next_toplevel();
+          return error_stmt();
+        }
 
-        data.push_back(std::make_shared<Parameters>(range, params));
+        data.push_back(std::make_shared<Parameters>(range, params.value()));
         last = TokenKind::RParen;
       }
       else
@@ -204,10 +214,11 @@ private:
     return std::make_shared<Block>(range, statements);
   }
 
-  std::vector<Parameter::Ptr> parse_parameters()
+  std::optional<std::vector<Parameter::Ptr>> parse_parameters()
   {
     auto range = current_token.range;
-    expect(TokenKind::LParen);
+    if(!expect(TokenKind::LParen))
+      return std::nullopt;
     std::vector<Parameter::Ptr> pars;
     if(peek(TokenKind::RParen))
     {

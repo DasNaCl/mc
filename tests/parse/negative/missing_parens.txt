@@ -1,0 +1,3 @@
+parse/negative/missing_parens.mf:5:1: error: expected token "LParen" but got "Id".
+Abstract syntax tree of module "parse/negative/missing_parens.mf": 
+[ErrorStatement <2> {(ErrorType)}]

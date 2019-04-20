@@ -20,6 +20,8 @@ enum class TokenKind : std::int_fast16_t
 #include "tokens.def"
 };
 
+std::string to_string(TokenKind tok);
+
 struct Token
 {
   SourceRange range;

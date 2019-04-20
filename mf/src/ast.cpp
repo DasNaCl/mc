@@ -43,6 +43,12 @@ FunctionType::FunctionType(Type::Ptr arg_typ, Type::Ptr ret_typ)
   : Type(), arg_typ(arg_typ), ret_typ(ret_typ)
 {  }
 
+Type::Ptr FunctionType::parameter_type() const
+{ return arg_typ; }
+
+Type::Ptr FunctionType::return_type() const
+{ return ret_typ; }
+
 void FunctionType::visit(ASTVisitor& vis)
 {
   vis.visit(std::static_pointer_cast<FunctionType>(shared_from_this()));

@@ -175,8 +175,7 @@ bool Tokenizer::accept(std::string substr)
   return false;
 }
 
-
-Token::operator std::string() const
+std::string to_string(TokenKind kind)
 {
   switch(kind)
   {
@@ -185,9 +184,9 @@ Token::operator std::string() const
 
   case TokenKind::EndOfFile: return "EndOfFile";
 
-  case TokenKind::Id: return std::string("Id(") + std::string(reinterpret_cast<char*>(data)) + ")";
+  case TokenKind::Id: return "Id";
 
-  case TokenKind::Number: return std::string("Number(") + std::string(reinterpret_cast<char*>(data)) + ")";
+  case TokenKind::Number: return "Number";
   case TokenKind::String: return "String";
   case TokenKind::Character: return "Character";
 
@@ -209,6 +208,21 @@ Token::operator std::string() const
   case TokenKind::Minus: return "Minus";
   case TokenKind::Star: return "Star";
   case TokenKind::Slash: return "Slash";
+  }
+}
+
+
+Token::operator std::string() const
+{
+  switch(kind)
+  {
+  default: return to_string(kind);
+
+  case TokenKind::Id: return to_string(kind) + "(" + std::string(reinterpret_cast<char*>(data)) + ")";
+
+  case TokenKind::Number: return to_string(kind) + "(" + std::string(reinterpret_cast<char*>(data)) + ")";
+  case TokenKind::String: return "String";
+  case TokenKind::Character: return "Character";
   }
 }
 

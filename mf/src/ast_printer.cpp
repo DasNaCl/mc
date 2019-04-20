@@ -110,7 +110,9 @@ void ASTPrinter::visit(PrimitiveType::Ptr type)
 
 void ASTPrinter::visit(FunctionType::Ptr type)
 {
-  // TODO
+  distribute(type->parameter_type());
+  std::cout << " -> ";
+  distribute(type->return_type());
 }
 
 void ASTPrinter::visit(TemplateType::Ptr type)
@@ -138,7 +140,7 @@ void ASTPrinter::visit(ArgsType::Ptr type)
   for(auto& var : v)
   {
     if(std::holds_alternative<ArgsType::_Id>(var))
-      std::cout << "-";
+      std::cout << "$";
     else
       distribute(std::get<Type::Ptr>(var));
   }
