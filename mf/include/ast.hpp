@@ -6,6 +6,8 @@
 #include <variant>
 #include <memory>
 
+#include <tsl/hopscotch_map.h>
+
 struct ASTVisitor;
 
 struct GIDTag
@@ -15,6 +17,23 @@ private:
   static std::uint_fast64_t gid_counter;
   std::uint_fast64_t gid_val { gid_counter++ };
 };
+struct GIDTagHasher
+{
+  std::size_t operator()(GIDTag* gidtag) const
+  { if(gidtag) return gidtag->gid(); return 0; } // gid is unique
+};
+struct GIDTagComparer
+{
+  bool operator()(GIDTag* lhs, GIDTag* rhs) const
+  { if(lhs && rhs) return lhs->gid() == rhs->gid(); return false; }
+};
+
+template<class T, 
+         unsigned int NeighborhoodSize = 62,
+         bool StoreHash = false,
+         class GrowthPolicy = tsl::hh::power_of_two_growth_policy<2>>
+using ASTNodeMap = tsl::hopscotch_map<GIDTag*, T, GIDTagHasher, GIDTagComparer, std::allocator<std::pair<GIDTag*, T>>,
+                                      NeighborhoodSize, StoreHash, GrowthPolicy>;
 
 class Type : public GIDTag, public std::enable_shared_from_this<Type>
 {

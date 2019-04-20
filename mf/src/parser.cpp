@@ -13,6 +13,12 @@ static constexpr std::uint_fast32_t type_ids[] = { hash_string("byte"),
                                                    hash_string("long"),  hash_string("ulong") };
 static constexpr std::size_t type_ids_len = sizeof(type_ids) / sizeof(type_ids[0]);
 
+struct FnEntry
+{
+  // Somehow encode associativity
+  std::vector<std::variant<Symbol, Parameters::Ptr>> data;
+};
+
 struct Parser
 {
 public:
@@ -23,6 +29,12 @@ public:
 
     for(std::size_t i = 0; i < type_ids_len; ++i)
       type_identifiers.emplace(type_ids[i]);
+  }
+
+  Parser& preprocess() &&
+  {
+    // We need to parse all function signatures and store them in a table
+    return *this;
   }
   
   std::vector<Statement::Ptr> parse() &&
@@ -103,7 +115,7 @@ private:
   {
     if(!accept(kind))
     {
-      emit_error() << "expected token \"" << to_string(kind) << "\" but got \"" << to_string(current_token.kind) << "\".";
+      emit_error() << "Expected token \"" << to_string(kind) << "\" but got \"" << to_string(current_token.kind) << "\".";
 
       return false;
     }
@@ -124,7 +136,6 @@ private:
   SourceRange prev_tok_loc;
 
   tsl::bhopscotch_set<std::uint_fast32_t> type_identifiers;
-
 private:
   // parsers
   
