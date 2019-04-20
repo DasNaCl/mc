@@ -139,7 +139,7 @@ private:
       if(peek(TokenKind::Id) && last != TokenKind::Id)
       {
         if(!last_ids.empty())
-          last_ids += "-";
+          last_ids += "$";
         last_ids += reinterpret_cast<const char*>(current_token.data);
 
         data.push_back(parse_identifier());
