@@ -13,9 +13,6 @@ static constexpr std::uint_fast32_t type_ids[] = { hash_string("byte"),
                                                    hash_string("long"),  hash_string("ulong") };
 static constexpr std::size_t type_ids_len = sizeof(type_ids) / sizeof(type_ids[0]);
 
-static bool is_type(const char* id)
-{ return std::find(std::begin(type_ids), std::end(type_ids), hash_string(id)) != std::end(type_ids); }
-
 struct Parser
 {
 public:
@@ -144,7 +141,7 @@ private:
         last = TokenKind::Id;
       }
       else if((peek(TokenKind::LParen) && last != TokenKind::RParen)
-           || (peek(TokenKind::Id) && is_type(reinterpret_cast<const char*>(current_token.data))))
+           || (peek(TokenKind::Id) && lookup_type_id(reinterpret_cast<const char*>(current_token.data))))
       {
         std::vector<Parameter::Ptr> params = parse_parameters();
 
@@ -243,7 +240,7 @@ private:
     auto range = current_token.range;
     const char* data = reinterpret_cast<const char*>(current_token.data);
 
-    if(is_type(data))
+    if(lookup_type_id(data))
     {
       emit_error() << "Type \"" << data << "\" used as identifier.";
       return error_stmt();
