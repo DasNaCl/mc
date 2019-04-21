@@ -1,10 +1,12 @@
 #include <ast.hpp>
+#include <numeric>
 
 std::uint_fast64_t GIDTag::gid_counter = 0;
 
+thread_local tsl::hopscotch_set<std::uint_fast32_t> Type::types = {};
+
 std::uint_fast64_t GIDTag::gid() const
 { return gid_val; }
-
 
 Statement::Statement(SourceRange loc)
   : loc(loc)
@@ -17,10 +19,32 @@ Expression::Expression(SourceRange loc)
 SourceRange Expression::source_range()
 { return loc; }
 
+Type::Type(std::uint_fast32_t hash)
+  : hash(hash)
+{ remember(hash); }
+
+void Type::remember(std::uint_fast32_t hash)
+{
+  auto it = types.find(hash);
+  if(it != types.end())
+    types.emplace(hash);
+}
+
+std::uint_fast32_t Type::shared_id() const
+{ return hash; }
+
+Unit::Unit()
+  : Type(0)
+{  }
+
 void Unit::visit(ASTVisitor& vis)
 {
   vis.visit(std::static_pointer_cast<Unit>(shared_from_this()));
 }
+
+ErrorType::ErrorType()
+  : Type(-2)
+{  }
 
 void ErrorType::visit(ASTVisitor& vis)
 {
@@ -28,7 +52,7 @@ void ErrorType::visit(ASTVisitor& vis)
 }
 
 PrimitiveType::PrimitiveType(Symbol name)
-  : Type(), name(name)
+  : Type(std::find(std::begin(prim_types), std::end(prim_types), name.get_hash()) - std::begin(prim_types)), name(name)
 {  }
 
 void PrimitiveType::visit(ASTVisitor& vis)
@@ -40,7 +64,7 @@ Symbol PrimitiveType::symbol() const
 { return name; }
 
 FunctionType::FunctionType(Type::Ptr arg_typ, Type::Ptr ret_typ)
-  : Type(), arg_typ(arg_typ), ret_typ(ret_typ)
+  : Type((1U << 31U) | ((arg_typ->shared_id() * 31U) + ret_typ->shared_id())), arg_typ(arg_typ), ret_typ(ret_typ)
 {  }
 
 Type::Ptr FunctionType::parameter_type() const
@@ -54,13 +78,19 @@ void FunctionType::visit(ASTVisitor& vis)
   vis.visit(std::static_pointer_cast<FunctionType>(shared_from_this()));
 }
 
+TemplateType::TemplateType()
+  : Type(-1)
+{  }
+
 void TemplateType::visit(ASTVisitor& vis)
 {
   vis.visit(std::static_pointer_cast<TemplateType>(shared_from_this()));
 }
 
 TupleType::TupleType(const std::vector<Type::Ptr>& types)
-  : Type(), data(types)
+  : Type(std::accumulate(types.begin(), types.end(), 0,
+          [](std::uint_fast32_t h0, Type::Ptr other) { return (h0 * 31) + other->shared_id(); })),
+    data(types)
 {  }
 
 void TupleType::visit(ASTVisitor& vis)
@@ -72,7 +102,14 @@ const std::vector<Type::Ptr>& TupleType::types() const
 { return data; }
 
 ArgsType::ArgsType(const std::vector<std::variant<ArgsType::_Id, Type::Ptr>>& types)
-  : Type(), data(types)
+  : Type((1U << 31U) | std::accumulate(types.begin(), types.end(), 0,
+                                       [](std::uint_fast32_t h0, const std::variant<ArgsType::_Id, Type::Ptr>& var)
+                                       {
+                                         if(std::holds_alternative<ArgsType::_Id>(var))
+                                           return (h0 * 31U) + 0x1921FB54;
+                                         else
+                                           return (h0 * 31U) + std::get<Type::Ptr>(var)->shared_id(); 
+                                       })), data(types)
 {  }
 
 void ArgsType::visit(ASTVisitor& vis)
@@ -133,6 +170,30 @@ Type::Ptr Block::type()
 Function::Function(SourceRange loc, const std::vector<Statement::Ptr>& data, Type::Ptr ret_typ)
   : Statement(loc), data(data), ret_typ(ret_typ)
 {  }
+
+std::vector<std::variant<Identifier::Ptr, Type::Ptr>> Function::signature()
+{
+  std::vector<std::variant<Identifier::Ptr, Type::Ptr>> dat;
+  for(auto& d : data)
+  {
+    if(auto id = std::dynamic_pointer_cast<Identifier>(d))
+      dat.emplace_back(id);
+    else if(auto typ = std::dynamic_pointer_cast<Parameters>(d))
+      dat.emplace_back(typ->type());
+  }
+  return dat;
+}
+
+std::vector<Identifier::Ptr> Function::ids()
+{
+  std::vector<Identifier::Ptr> identifiers;
+  for(auto& d : data)
+  {
+    if(auto id = std::dynamic_pointer_cast<Identifier>(d))
+      identifiers.emplace_back(id);
+  }
+  return identifiers;
+}
 
 Type::Ptr Function::type()
 {

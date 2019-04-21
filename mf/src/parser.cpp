@@ -4,19 +4,65 @@
 
 #include <tsl/bhopscotch_set.h>
 
+#include <iostream>
 #include <cassert>
 
-static constexpr std::uint_fast32_t type_ids[] = { hash_string("byte"),
-                                                   hash_string("char"),  hash_string("uchar"),
-                                                   hash_string("short"), hash_string("ushort"),
-                                                   hash_string("int"),   hash_string("uint"),
-                                                   hash_string("long"),  hash_string("ulong") };
-static constexpr std::size_t type_ids_len = sizeof(type_ids) / sizeof(type_ids[0]);
-
-struct FnEntry
+struct TrieNode : public std::enable_shared_from_this<TrieNode>
 {
-  // Somehow encode associativity
-  std::vector<std::variant<Symbol, Parameters::Ptr>> data;
+  using Ptr = std::shared_ptr<TrieNode>;
+
+  TrieNode(Symbol name, std::uint_fast64_t hash)
+    : dat(name), hash(hash)
+  {  }
+
+  TrieNode(Type::Ptr typ, std::uint_fast64_t hash)
+    : dat(typ), hash(hash)
+  {  }
+
+  TrieNode(std::uint_fast64_t hash)
+    : dat(std::monostate{}), hash(hash)
+  {  }
+
+  TrieNode::Ptr add_node(TrieNode::Ptr n)
+  {
+    if(nodes.find(n->hash) == nodes.end())
+      nodes[n->hash] = n;
+    return nodes[n->hash];
+  }
+
+  void print(int depth = 0)
+  {
+    std::cout << "Trie [" << hash;
+   
+    if(!std::holds_alternative<std::monostate>(dat))
+    {
+      std::cout << "   ";
+   
+      if(std::holds_alternative<Symbol>(dat))
+        std::cout << std::get<Symbol>(dat);
+      else if(std::holds_alternative<Type::Ptr>(dat))
+        std::cout << "t" << std::get<Type::Ptr>(dat)->shared_id();
+    }
+    std::cout << "]\n";
+    for(auto& n : nodes)
+    {
+      auto de = depth;
+      while(de > 0)
+      {
+        std::cout << "\t";
+        --de;
+      }
+      std::cout << "| ";
+      n.second->print(depth + 1);
+    }
+  }
+
+  std::variant<std::monostate, Symbol, Type::Ptr> dat;
+  std::uint_fast64_t hash;
+  std::unordered_map<std::uint_fast64_t, TrieNode::Ptr> nodes;
+
+  // Using hopscotch is buggy here!
+//  tsl::hopscotch_map<std::uint_fast64_t, TrieNode::Ptr> nodes;
 };
 
 struct Parser
@@ -27,17 +73,47 @@ public:
   {
     next_token(); next_token(); next_token();
 
-    for(std::size_t i = 0; i < type_ids_len; ++i)
-      type_identifiers.emplace(type_ids[i]);
+    for(std::size_t i = 0; i < prim_types_len; ++i)
+      type_identifiers.emplace(prim_types[i]);
   }
 
   Parser& preprocess() &&
   {
-    // We need to parse all function signatures and store them in a table
+    TrieNode::Ptr root = std::make_shared<TrieNode>(0);
+    while(!peek(TokenKind::EndOfFile))
+    {                // read top-level functions and ignore blocks
+      auto st = parse_function(true, true); 
+
+      TrieNode::Ptr cpy = root;
+      // ignore error statements
+      if(std::dynamic_pointer_cast<ErrorStatement>(st))
+        continue;
+      auto fn = std::static_pointer_cast<Function>(st);
+      auto sig = fn->signature();
+
+      for(auto& var : sig)
+      {
+        if(std::holds_alternative<Identifier::Ptr>(var))
+        {
+          auto id = std::get<Identifier::Ptr>(var)->id();
+          std::uint_fast64_t hash = id.get_hash();
+          cpy = cpy->add_node(std::make_shared<TrieNode>(id, hash));
+        }
+        else if(std::holds_alternative<Type::Ptr>(var))
+        {
+          auto typ = std::get<Type::Ptr>(var);
+          std::uint_fast64_t hash = typ->shared_id();
+          cpy = cpy->add_node(std::make_shared<TrieNode>(typ, hash));
+        }
+      }
+      cpy->add_node(std::make_shared<TrieNode>(0));
+    }
+    tokenizer.reset();
+    next_token(); next_token(); next_token();
     return *this;
   }
   
-  std::vector<Statement::Ptr> parse() &&
+  std::vector<Statement::Ptr> parse() &
   {
     if(peek(TokenKind::EndOfFile))
       return {};
@@ -56,8 +132,9 @@ public:
 
   void skip_to_next_toplevel()
   {
-    bool another_fn = true;
-    do
+    bool another_fn = (peek(TokenKind::Id)     && n1_peek(TokenKind::LParen))
+                   || (peek(TokenKind::LParen) && (n1_peek(TokenKind::RParen) || (n1_peek(TokenKind::Id) && n2_peek(TokenKind::DoubleColon))));
+    while(!another_fn && !peek(TokenKind::EndOfFile))
     {
       while(!peek(TokenKind::RBrace) && !peek(TokenKind::EndOfFile))
       {
@@ -65,9 +142,9 @@ public:
       }
       next_token();
 
-      another_fn = (n1_peek(TokenKind::Id) && n2_peek(TokenKind::LParen))
-                || (n1_peek(TokenKind::LParen) && n2_peek(TokenKind::Id));
-    } while(!another_fn && !peek(TokenKind::EndOfFile));
+      another_fn = (peek(TokenKind::Id)     && n1_peek(TokenKind::LParen))
+                || (peek(TokenKind::LParen) && (n1_peek(TokenKind::RParen) || (n1_peek(TokenKind::Id) && n2_peek(TokenKind::DoubleColon))));
+    }
   }
 
   ErrorExpression::Ptr error_expr(SourceRange range)
@@ -142,7 +219,7 @@ private:
   Statement::Ptr parse_root()
   { return parse_function(true); }
 
-  Statement::Ptr parse_function(bool is_top_level = false)
+  Statement::Ptr parse_function(bool is_top_level = false, bool ignore_body = false)
   {
     SourceRange range = current_token.range;
     std::vector<Statement::Ptr> data;
@@ -212,7 +289,10 @@ private:
       return error_stmt(range);
     }
     auto ret_typ = parse_type();
-    data.push_back(parse_block()); // last token was '}'
+    if(!ignore_body)
+      data.push_back(parse_block()); // last token was '}'
+    else
+      skip_to_next_toplevel();
     range.widen(prev_tok_loc);
     return std::make_shared<Function>(range, data, ret_typ);
   }
@@ -403,6 +483,6 @@ private:
 
 std::vector<Statement::Ptr> parse(Tokenizer& tokenizer)
 {
-  return Parser(tokenizer).parse();
+  return Parser(tokenizer).preprocess().parse();
 }
 

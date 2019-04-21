@@ -47,6 +47,7 @@ public:
   Tokenizer(const char* module, std::istream& handle);
 
   Token get();
+  void reset();
 
   const std::string& module_name() const;
 private:

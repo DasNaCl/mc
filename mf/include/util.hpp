@@ -164,6 +164,8 @@ struct Symbol
   Symbol& operator=(Symbol&& s);
 
   friend std::ostream& operator<<(std::ostream& os, const Symbol& s);
+
+  std::uint_fast32_t get_hash() const;
 private:
   static std::string& lookup_or_emplace(std::uint_fast32_t hash, const char* str);
 private:

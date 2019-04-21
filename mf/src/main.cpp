@@ -42,7 +42,6 @@ int main(int argc, const char* argv[])
     {
       auto astnodes = parse(tokenizer);
 
-
       std::cout << "Abstract syntax tree of module \"" << tokenizer.module_name() << "\": \n";
       ASTPrinter printer;
       printer.visit_all(astnodes);

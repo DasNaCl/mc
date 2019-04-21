@@ -211,6 +211,11 @@ std::string to_string(TokenKind kind)
   }
 }
 
+void Tokenizer::reset()
+{
+  handle.clear();
+  handle.seekg(0, std::ios::beg);
+}
 
 Token::operator std::string() const
 {

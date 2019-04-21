@@ -7,6 +7,7 @@
 #include <memory>
 
 #include <tsl/hopscotch_map.h>
+#include <tsl/hopscotch_set.h>
 
 struct ASTVisitor;
 
@@ -35,13 +36,31 @@ template<class T,
 using ASTNodeMap = tsl::hopscotch_map<GIDTag*, T, GIDTagHasher, GIDTagComparer, std::allocator<std::pair<GIDTag*, T>>,
                                       NeighborhoodSize, StoreHash, GrowthPolicy>;
 
+
+static constexpr std::uint_fast32_t prim_types[] = { hash_string("byte"),
+                                                   hash_string("char"),  hash_string("uchar"),
+                                                   hash_string("short"), hash_string("ushort"),
+                                                   hash_string("int"),   hash_string("uint"),
+                                                   hash_string("long"),  hash_string("ulong") };
+static constexpr std::size_t prim_types_len = sizeof(prim_types) / sizeof(prim_types[0]);
+
 class Type : public GIDTag, public std::enable_shared_from_this<Type>
 {
   friend struct ASTVisitor;
 public:
   using Ptr = std::shared_ptr<Type>;
+
+  Type(std::uint_fast32_t hash);
+
+  std::uint_fast32_t shared_id() const;
 protected:
   virtual void visit(ASTVisitor& vis) = 0;
+private:
+  static void remember(std::uint_fast32_t hash);
+private:
+  thread_local static tsl::hopscotch_set<std::uint_fast32_t> types;
+
+  std::uint_fast32_t hash;
 };
 
 class Statement : public GIDTag, public std::enable_shared_from_this<Statement>
@@ -86,8 +105,11 @@ private:
 
 struct Unit : public Type
 {
+public:
   friend struct ASTVisitor;
   using Ptr = std::shared_ptr<Unit>;
+  
+  Unit();
 
 private:
   void visit(ASTVisitor& vis) override;
@@ -127,8 +149,11 @@ private:
 
 struct TemplateType : public Type
 {
+public:
   friend struct ASTVisitor;
   using Ptr = std::shared_ptr<TemplateType>;
+
+  TemplateType();
 
 private:
   void visit(ASTVisitor& vis) override;
@@ -168,8 +193,11 @@ private:
 
 struct ErrorType : public Type
 {
+public:
   friend struct ASTVisitor;
   using Ptr = std::shared_ptr<ErrorType>;
+
+  ErrorType();
 
 private:
   void visit(ASTVisitor& vis) override;
@@ -277,6 +305,9 @@ public:
 
   Function(SourceRange loc, const std::vector<Statement::Ptr>& data, Type::Ptr ret_typ);
 
+  std::vector<std::variant<Identifier::Ptr, Type::Ptr>> signature();
+
+  std::vector<Identifier::Ptr> ids();
   Type::Ptr type() override;
 private:
   void enter(ASTVisitor& vis) override;
