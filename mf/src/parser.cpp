@@ -385,66 +385,82 @@ private:
 
   Statement::Ptr parse_expression_statement()
   {
-    auto expr = parse_expression(0);
+    auto expr = parse_expression();
     
     return std::make_shared<ExpressionStatement>(expr);
   }
 
-  std::int_fast32_t lbp(TokenKind kind) const
+  Expression::Ptr parse_literal()
   {
-    // TODO: Lookup operator in table
-    switch(kind)
-    {
-      default: return 0; // error: Unknown token
-
-    case TokenKind::Plus: return 100;
-    }
-  }
-
-  Expression::Ptr nud(Token tok)
-  {
-    // TODO: Lookup unary op in table
+    auto tok = current_token;
+    next_token();
     switch(tok.kind)
     {
-    default: return nullptr;
+    default: return error_expr();
 
     case TokenKind::Id:
     case TokenKind::Number:
     case TokenKind::String:
     case TokenKind::Character:
-         return std::make_shared<LiteralExpression>(tok);
-    }
-  }
-  
-  Expression::Ptr led(TokenKind kind, Expression::Ptr left)
-  {
-    // TODO: Lookup parser in table with operators
-    
-    Expression::Ptr right = nullptr;
-    switch(kind)
-    {
-    default: assert(false); return nullptr;
-    
-    case TokenKind::Plus:
-         right = parse_expression(lbp(TokenKind::Plus)); 
-         return std::make_shared<BinaryExpression>(left, right);
-
-         // for right-assoc, recurse into expression(lbp(tok) - 1)
+       return std::make_shared<LiteralExpression>(tok);
     }
   }
 
-  Expression::Ptr parse_expression(std::int_fast32_t rbp)
+  Expression::Ptr parse_call()
   {
-    auto t = current_token;
-    next_token();
-    Expression::Ptr left = nud(t);
-    while(rbp < lbp(current_token.kind))
+    expr_parse_tree->reset();
+
+    // Call is maximum possible sequence until our trie asserts unparsability
+    auto range = current_token.range;
+    bool modified = false;
+    do
     {
-      t = current_token;
-      next_token();
-      left = led(t.kind, left);
-    }
-    return left;
+      switch(current_token.kind)
+      {
+        default: emit_error() << "Invalid function call syntax."; return error_expr();
+
+        case TokenKind::Id:
+           {
+             Symbol symb(reinterpret_cast<const char*>(current_token.data));
+             modified = expr_parse_tree->lookup_step(symb);
+
+             // what do now?
+           } break;
+        case TokenKind::LParen:
+           {
+             auto inner = parse_expression();
+             modified = expr_parse_tree->lookup_step(inner->type());
+
+             // what do now?
+           } break;
+      }
+      if(modified && expr_parse_tree->is_end())
+      {
+        // end of expr parse tree, so we *have to* parse this or emit an error
+        if(expr_parse_tree->is_parsable())
+        {
+          // Somehow parse this
+        }
+        else
+        {
+          emit_error() << "No matching function to call to.";
+          return error_expr();
+        }
+      } 
+    } while(modified);
+  }
+
+  Expression::Ptr parse_expression()
+  {
+    // For now, expressions must be parenthesized: (...)
+    expect(TokenKind::LParen);
+    Expression::Ptr inner;
+    if(n1_peek(TokenKind::RParen))
+      inner = parse_literal();
+    else
+      inner = parse_call();
+    expect(TokenKind::RParen);
+    return inner;
   }
 
   Type::Ptr parse_type(Type::Ptr type = nullptr)
