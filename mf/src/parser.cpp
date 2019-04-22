@@ -9,18 +9,24 @@
 
 struct TrieNode : public std::enable_shared_from_this<TrieNode>
 {
+private:
+  std::uint_fast32_t calc_hash(Symbol symb)
+  { return (1U << 31U) ^ (~(1U << 31U) & (symb.get_hash() + 1)); } 
+  std::uint_fast32_t calc_hash(Type::Ptr typ)
+  { return ~(1U << 31U) & (typ->shared_id() + 1); }
+public:
   using Ptr = std::shared_ptr<TrieNode>;
 
-  TrieNode(Symbol name, std::uint_fast64_t hash)
-    : dat(name), hash(hash)
+  TrieNode(Symbol name)
+    : dat(name), hash(calc_hash(name))
   {  }
 
-  TrieNode(Type::Ptr typ, std::uint_fast64_t hash)
-    : dat(typ), hash(hash)
+  TrieNode(Type::Ptr typ)
+    : dat(typ), hash(calc_hash(typ))
   {  }
 
-  TrieNode(std::uint_fast64_t hash)
-    : dat(std::monostate{}), hash(hash)
+  TrieNode()
+    : dat(std::monostate{}), hash(0), current_node()
   {  }
 
   TrieNode::Ptr add_node(TrieNode::Ptr n)
@@ -30,39 +36,45 @@ struct TrieNode : public std::enable_shared_from_this<TrieNode>
     return nodes[n->hash];
   }
 
-  void print(int depth = 0)
+  bool lookup_step(std::variant<Type::Ptr, Symbol> typ_symb)
   {
-    std::cout << "Trie [" << hash;
-   
-    if(!std::holds_alternative<std::monostate>(dat))
-    {
-      std::cout << "   ";
-   
-      if(std::holds_alternative<Symbol>(dat))
-        std::cout << std::get<Symbol>(dat);
-      else if(std::holds_alternative<Type::Ptr>(dat))
-        std::cout << "t" << std::get<Type::Ptr>(dat)->shared_id();
-    }
-    std::cout << "]\n";
-    for(auto& n : nodes)
-    {
-      auto de = depth;
-      while(de > 0)
-      {
-        std::cout << "\t";
-        --de;
-      }
-      std::cout << "| ";
-      n.second->print(depth + 1);
-    }
+    if(!current_node)
+      current_node = shared_from_this();
+    const std::uint_fast32_t hash = (std::holds_alternative<Type::Ptr>(typ_symb)
+                                   ? calc_hash(std::get<Type::Ptr>(typ_symb))
+                                   : calc_hash(std::get<Symbol>(typ_symb)));
+    auto it = current_node->nodes.find(hash);
+    if(it == current_node->nodes.end())
+      return false;
+    current_node = it->second->shared_from_this();
+    return true;
+  }
+
+  bool is_parsable()
+  {
+    if(!current_node)
+      current_node = shared_from_this();
+    return current_node->nodes.find(0) != current_node->nodes.end();
+  }
+
+  bool is_end()
+  {
+    if(!current_node)
+      current_node = shared_from_this();
+    return (current_node->nodes.size() == 1)
+        && (current_node->nodes.find(0) != current_node->nodes.end());
+  }
+
+  void reset()
+  {
+    current_node = nullptr;
   }
 
   std::variant<std::monostate, Symbol, Type::Ptr> dat;
   std::uint_fast64_t hash;
   std::unordered_map<std::uint_fast64_t, TrieNode::Ptr> nodes;
 
-  // Using hopscotch is buggy here!
-//  tsl::hopscotch_map<std::uint_fast64_t, TrieNode::Ptr> nodes;
+  TrieNode::Ptr current_node;
 };
 
 struct Parser
@@ -79,7 +91,7 @@ public:
 
   Parser& preprocess() &&
   {
-    TrieNode::Ptr root = std::make_shared<TrieNode>(0);
+    TrieNode::Ptr root = std::make_shared<TrieNode>();
     while(!peek(TokenKind::EndOfFile))
     {                // read top-level functions and ignore blocks
       auto st = parse_function(true, true); 
@@ -96,18 +108,17 @@ public:
         if(std::holds_alternative<Identifier::Ptr>(var))
         {
           auto id = std::get<Identifier::Ptr>(var)->id();
-          std::uint_fast64_t hash = id.get_hash();
-          cpy = cpy->add_node(std::make_shared<TrieNode>(id, hash));
+          cpy = cpy->add_node(std::make_shared<TrieNode>(id));
         }
         else if(std::holds_alternative<Type::Ptr>(var))
         {
           auto typ = std::get<Type::Ptr>(var);
-          std::uint_fast64_t hash = typ->shared_id();
-          cpy = cpy->add_node(std::make_shared<TrieNode>(typ, hash));
+          cpy = cpy->add_node(std::make_shared<TrieNode>(typ));
         }
       }
-      cpy->add_node(std::make_shared<TrieNode>(0));
+      cpy->add_node(std::make_shared<TrieNode>());
     }
+    expr_parse_tree = root;
     tokenizer.reset();
     next_token(); next_token(); next_token();
     return *this;
@@ -213,6 +224,7 @@ private:
   SourceRange prev_tok_loc;
 
   tsl::bhopscotch_set<std::uint_fast32_t> type_identifiers;
+  TrieNode::Ptr expr_parse_tree;
 private:
   // parsers
   
