@@ -410,11 +410,11 @@ private:
   {
     expr_parse_tree->reset();
 
-    // Call is maximum possible sequence until our trie asserts unparsability
     auto range = current_token.range;
     bool modified = false;
     do
     {
+      // we want to parse until "end" is asserted!
       switch(current_token.kind)
       {
         default: emit_error() << "Invalid function call syntax."; return error_expr();
