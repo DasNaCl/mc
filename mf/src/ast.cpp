@@ -251,6 +251,9 @@ Type::Ptr BinaryExpression::type()
   return lt;
 }
 
+FunctionCall::FunctionCall(SourceRange range, const std::vector<Expression::Ptr>& arguments, Symbol function_name)
+  : Expression(range), args(arguments), function_name(function_name)
+{  }
 
 void ASTVisitor::visit_all(const std::vector<Statement::Ptr>& ast)
 {

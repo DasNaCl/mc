@@ -382,6 +382,17 @@ private:
   Expression::Ptr right;
 };
 
+class FunctionCall : public Expression
+{
+public:
+  using Ptr = std::shared_ptr<FunctionCall>;
+
+  FunctionCall(SourceRange range, const std::vector<Expression::Ptr>& arguments, Symbol function_name);
+private:
+  std::vector<Expression::Ptr> args;
+  Symbol function_name;
+};
+
 
 struct ASTVisitor
 {
