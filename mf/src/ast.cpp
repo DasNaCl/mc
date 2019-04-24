@@ -138,8 +138,15 @@ Type::Ptr Identifier::type()
 { return typ; }
 
 Declaration::Declaration(SourceRange loc, Statement::Ptr identifier, Type::Ptr type)
-  : Statement(loc), identifier(identifier), typ(type)
+  : Statement(loc), _identifier(identifier), typ(type)
 {  }
+
+Identifier::Ptr Declaration::identifier()
+{
+  if(auto id = std::dynamic_pointer_cast<Identifier>(_identifier); id)
+    return id;
+  return nullptr;
+}
 
 Type::Ptr Declaration::type()
 { return typ; }
@@ -160,16 +167,19 @@ Type::Ptr Parameters::type()
   return std::make_shared<TupleType>(types);
 }
 
-Block::Block(SourceRange loc, const std::vector<Statement::Ptr>& statements)
-  : Statement(loc), statements(statements)
-{  }
+Block::Block(SourceRange loc, Scope::Ptr par_scope, const std::vector<Statement::Ptr>& statements)
+  : Statement(loc), scope(par_scope), statements(statements)
+{ assert(par_scope); }
 
 Type::Ptr Block::type()
 { return std::make_shared<Unit>(); }
 
-Function::Function(SourceRange loc, const std::vector<Statement::Ptr>& data, Type::Ptr ret_typ)
-  : Statement(loc), data(data), ret_typ(ret_typ)
-{  }
+Function::Function(SourceRange loc, Scope::Ptr par_scope, const std::vector<Statement::Ptr>& data, Type::Ptr ret_typ)
+  : Statement(loc), scope(par_scope), data(data), ret_typ(ret_typ)
+{ assert(scope); }
+
+Scope& Function::get_scope()
+{ return *scope; }
 
 std::vector<std::variant<Identifier::Ptr, Type::Ptr>> Function::signature()
 {
@@ -202,7 +212,7 @@ Type::Ptr Function::type()
   {
     if(std::dynamic_pointer_cast<Parameters>(stmt))
       types.emplace_back(stmt->type());
-    else
+    else if(std::dynamic_pointer_cast<Identifier>(stmt))
       types.emplace_back(ArgsType::_Id{});
   }
   return std::make_shared<FunctionType>(std::make_shared<ArgsType>(types), ret_typ);
@@ -223,8 +233,11 @@ Type::Ptr ExpressionStatement::type()
 { return expr->type(); }
 
 LiteralExpression::LiteralExpression(Token tok)
-  : Expression(tok.range), kind(tok.kind), data(tok.data)
+  : Expression(tok.range), kind(tok.kind), dat(tok.data)
 {  }
+
+void* LiteralExpression::data()
+{ return dat; }
 
 Type::Ptr LiteralExpression::type()
 {
@@ -254,6 +267,22 @@ Type::Ptr BinaryExpression::type()
 FunctionCall::FunctionCall(SourceRange range, const std::vector<Expression::Ptr>& arguments, Symbol function_name)
   : Expression(range), args(arguments), function_name(function_name)
 {  }
+
+Type::Ptr FunctionCall::type()
+{
+  // TODO: optimistically return function's return type
+  return std::make_shared<TemplateType>();
+}
+
+UnitExpression::UnitExpression(SourceRange range)
+  : Expression(range)
+{  }
+
+Type::Ptr UnitExpression::type()
+{
+  return std::make_shared<Unit>();
+}
+
 
 void ASTVisitor::visit_all(const std::vector<Statement::Ptr>& ast)
 {
@@ -527,6 +556,28 @@ void BinaryExpression::visit(ASTVisitor& visitor)
 void BinaryExpression::leave(ASTVisitor& visitor)
 {
   visitor.leave(std::static_pointer_cast<BinaryExpression>(shared_from_this()));
+  Expression::leave(visitor);
+}
+
+void FunctionCall::enter(ASTVisitor& visitor)
+{
+  Expression::enter(visitor);
+  visitor.enter(std::static_pointer_cast<FunctionCall>(shared_from_this()));
+}
+void FunctionCall::visit(ASTVisitor& visitor)
+{
+  FunctionCall::enter(visitor);
+  Expression::visit(visitor);
+  visitor.visit(std::static_pointer_cast<FunctionCall>(shared_from_this()));
+
+  for(auto& a : args)
+    a->visit(visitor);
+
+  FunctionCall::leave(visitor);
+}
+void FunctionCall::leave(ASTVisitor& visitor)
+{
+  visitor.leave(std::static_pointer_cast<FunctionCall>(shared_from_this()));
   Expression::leave(visitor);
 }
 

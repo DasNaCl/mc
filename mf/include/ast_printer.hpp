@@ -7,6 +7,7 @@ struct ASTPrinter : ASTVisitor
   void leave(Block::Ptr) override;
   void leave(Function::Ptr) override;
   void leave(ExpressionStatement::Ptr) override;
+  void leave(FunctionCall::Ptr) override;
 
   void visit(Identifier::Ptr id) override;
   void visit(Declaration::Ptr decl) override;
@@ -20,6 +21,7 @@ struct ASTPrinter : ASTVisitor
   void visit(ErrorExpression::Ptr err_expr) override;
   void visit(LiteralExpression::Ptr lit_expr) override;
   void visit(BinaryExpression::Ptr bin_expr) override;
+  void visit(FunctionCall::Ptr fn_call) override;
 
   // inner visiting functions for types
   void visit(Unit::Ptr typ) override;

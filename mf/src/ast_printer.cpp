@@ -18,6 +18,9 @@ void ASTPrinter::leave(Function::Ptr)
 void ASTPrinter::leave(ExpressionStatement::Ptr)
 { if(depth > 0) --depth; }
 
+void ASTPrinter::leave(FunctionCall::Ptr)
+{ if(depth > 0) --depth; }
+
 void ASTPrinter::visit(ErrorStatement::Ptr err_stmt)
 {
   streamout() << "[ErrorStatement <" << err_stmt->gid() << "> {";
@@ -88,7 +91,7 @@ void ASTPrinter::visit(LiteralExpression::Ptr lit_expr)
 {
   streamout() << "(Literal <" << lit_expr->gid() << "> {";
   distribute(lit_expr->type());
-  std::cout << "})\n";
+  std::cout << "} [\"" << reinterpret_cast<const char*>(lit_expr->data()) << "\"])\n";
 }
 
 void ASTPrinter::visit(BinaryExpression::Ptr bin_expr)
@@ -96,6 +99,14 @@ void ASTPrinter::visit(BinaryExpression::Ptr bin_expr)
   streamout() << "(Binary <" << bin_expr->gid() << "> {";
   distribute(bin_expr->type());
   std::cout << "})\n";
+}
+
+void ASTPrinter::visit(FunctionCall::Ptr fn_call)
+{
+  streamout() << "(FunctionCall <" << fn_call->gid() << "> {";
+  distribute(fn_call->type());
+  std::cout << "})\n";
+  ++depth;
 }
 
 void ASTPrinter::visit(Unit::Ptr type)

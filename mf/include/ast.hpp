@@ -2,6 +2,7 @@
 
 #include <SourceRange.hpp>
 #include <tokenizer.hpp>
+#include <scope.hpp>
 #include <util.hpp>
 #include <variant>
 #include <memory>
@@ -87,6 +88,7 @@ class Expression : public GIDTag, public std::enable_shared_from_this<Expression
   friend struct ASTVisitor;
   friend class ExpressionStatement;
   friend class BinaryExpression;
+  friend class FunctionCall;
 public:
   using Ptr = std::shared_ptr<Expression>;
 
@@ -243,6 +245,7 @@ public:
 
   Declaration(SourceRange range, Statement::Ptr identifier, Type::Ptr type);
 
+  Identifier::Ptr identifier();
   Type::Ptr type() override;
 protected:
   void enter(ASTVisitor& vis) override;
@@ -250,7 +253,7 @@ protected:
   void leave(ASTVisitor& vis) override;
 private:
   SourceRange range;
-  Statement::Ptr identifier;
+  Statement::Ptr _identifier;
   Type::Ptr typ;
 };
 
@@ -287,7 +290,7 @@ class Block : public Statement
 public:
   using Ptr = std::shared_ptr<Block>;
 
-  Block(SourceRange range, const std::vector<Statement::Ptr>& statements);
+  Block(SourceRange range, Scope::Ptr scope, const std::vector<Statement::Ptr>& statements);
 
   Type::Ptr type() override;
 private:
@@ -295,6 +298,8 @@ private:
   void visit(ASTVisitor& vis) override;
   void leave(ASTVisitor& vis) override;
 private:
+  Scope::Ptr scope;
+
   std::vector<Statement::Ptr> statements;
 };
 
@@ -303,7 +308,9 @@ class Function : public Statement
 public:
   using Ptr = std::shared_ptr<Function>;
 
-  Function(SourceRange loc, const std::vector<Statement::Ptr>& data, Type::Ptr ret_typ);
+  Function(SourceRange loc, Scope::Ptr scope, const std::vector<Statement::Ptr>& data, Type::Ptr ret_typ);
+
+  Scope& get_scope();
 
   std::vector<std::variant<Identifier::Ptr, Type::Ptr>> signature();
 
@@ -314,6 +321,8 @@ private:
   void visit(ASTVisitor& vis) override;
   void leave(ASTVisitor& vis) override;
 private:
+  Scope::Ptr scope;
+
   std::vector<Statement::Ptr> data;
   Type::Ptr ret_typ;
 };
@@ -355,6 +364,7 @@ public:
 
   LiteralExpression(Token kind);
 
+  void* data();
   Type::Ptr type() override;
 private:
   void enter(ASTVisitor& vis) override;
@@ -362,7 +372,7 @@ private:
   void leave(ASTVisitor& vis) override;
 private:
   TokenKind kind;
-  void* data;
+  void* dat;
 };
 
 class BinaryExpression : public Expression
@@ -388,9 +398,25 @@ public:
   using Ptr = std::shared_ptr<FunctionCall>;
 
   FunctionCall(SourceRange range, const std::vector<Expression::Ptr>& arguments, Symbol function_name);
+
+  Type::Ptr type() override;
+private:
+  void enter(ASTVisitor& vis) override;
+  void visit(ASTVisitor& vis) override;
+  void leave(ASTVisitor& vis) override;
 private:
   std::vector<Expression::Ptr> args;
   Symbol function_name;
+};
+
+class UnitExpression : public Expression
+{
+public:
+  using Ptr = std::shared_ptr<UnitExpression>;
+
+  UnitExpression(SourceRange range);
+
+  Type::Ptr type() override;
 };
 
 
@@ -416,6 +442,7 @@ struct ASTVisitor
   virtual void enter(ErrorExpression::Ptr err_expr) {  }
   virtual void enter(LiteralExpression::Ptr lit_expr) {  }
   virtual void enter(BinaryExpression::Ptr bin_expr) {  }
+  virtual void enter(FunctionCall::Ptr fn_call) {  }
 
 
   virtual void visit(Statement::Ptr stmt) {  }
@@ -432,6 +459,7 @@ struct ASTVisitor
   virtual void visit(ErrorExpression::Ptr err_expr) {  }
   virtual void visit(LiteralExpression::Ptr lit_expr) {  }
   virtual void visit(BinaryExpression::Ptr bin_expr) {  }
+  virtual void visit(FunctionCall::Ptr fn_call) {  }
 
 
   virtual void leave(Statement::Ptr stmt) {  }
@@ -448,6 +476,7 @@ struct ASTVisitor
   virtual void leave(ErrorExpression::Ptr err_expr) {  }
   virtual void leave(LiteralExpression::Ptr lit_expr) {  }
   virtual void leave(BinaryExpression::Ptr bin_expr) {  }
+  virtual void leave(FunctionCall::Ptr fn_call) {  }
 
 
   virtual void visit(Type::Ptr type) {  }

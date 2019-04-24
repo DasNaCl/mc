@@ -1,5 +1,6 @@
 #include <parser.hpp>
 #include <tokenizer.hpp>
+#include <scope.hpp>
 #include <log.hpp>
 
 #include <tsl/bhopscotch_set.h>
@@ -225,6 +226,8 @@ private:
 
   tsl::bhopscotch_set<std::uint_fast32_t> type_identifiers;
   TrieNode::Ptr expr_parse_tree;
+
+  Scope::Ptr current_scope;
 private:
   // parsers
   
@@ -235,6 +238,7 @@ private:
   {
     SourceRange range = current_token.range;
     std::vector<Statement::Ptr> data;
+    Scope::Ptr scope = std::make_shared<Scope>();
 
     TokenKind last = TokenKind::Undef;
     std::string last_ids;
@@ -260,6 +264,10 @@ private:
           return error_stmt(pars_range);
         }
         data.push_back(std::make_shared<Parameters>(pars_range, params.value()));
+        for(auto& p : params.value())
+        {
+          scope->add(p->identifier()->id(), p->type());
+        }
         last = TokenKind::RParen;
       }
       else
@@ -301,17 +309,24 @@ private:
       return error_stmt(range);
     }
     auto ret_typ = parse_type();
+
+    // TODO: add function's name to scope of block to allow for recursive calls
+    current_scope = scope;
     if(!ignore_body)
       data.push_back(parse_block()); // last token was '}'
     else
       skip_to_next_toplevel();
     range.widen(prev_tok_loc);
-    return std::make_shared<Function>(range, data, ret_typ);
+    return std::make_shared<Function>(range, scope, data, ret_typ);
   }
 
   Statement::Ptr parse_block()
   {
     SourceRange range = current_token.range;
+
+    Scope::Ptr scope = std::make_shared<Scope>();
+    current_scope->make_parent(*scope);
+
     if(!expect(TokenKind::LBrace))
       return error_stmt(range);
 
@@ -325,7 +340,7 @@ private:
       return error_stmt(range);
     range.widen(current_token.range);
 
-    return std::make_shared<Block>(range, statements);
+    return std::make_shared<Block>(range, scope, statements);
   }
 
   std::optional<std::vector<Parameter::Ptr>> parse_parameters()
@@ -411,52 +426,82 @@ private:
     expr_parse_tree->reset();
 
     auto range = current_token.range;
-    bool modified = false;
+    bool keep_on_parsing = true;
+    std::vector<Expression::Ptr> args;
+    std::string fn_name;
     do
     {
-      // we want to parse until "end" is asserted!
+      bool modified = false;
       switch(current_token.kind)
       {
         default: emit_error() << "Invalid function call syntax."; return error_expr();
 
+        case TokenKind::RParen: modified = false; break; // <- TODO: remove in future upon parentheses elimination
         case TokenKind::Id:
            {
-             Symbol symb(reinterpret_cast<const char*>(current_token.data));
-             modified = expr_parse_tree->lookup_step(symb);
+             std::string name(reinterpret_cast<const char*>(current_token.data));
+             modified = expr_parse_tree->lookup_step(Symbol(name));
 
-             // what do now?
+             if(modified)
+             {
+               if(!fn_name.empty())
+                 fn_name += "$";
+               fn_name += name;
+             }
+             else // must be an arg
+             {
+               args.emplace_back(std::make_shared<LiteralExpression>(current_token));
+               auto type = current_scope->lookup(Symbol(name));
+
+               // -> redo lookup step with arg's type
+               modified = expr_parse_tree->lookup_step(type);
+             }
            } break;
         case TokenKind::LParen:
            {
              auto inner = parse_expression();
              modified = expr_parse_tree->lookup_step(inner->type());
 
-             // what do now?
+             if(modified)
+               args.emplace_back(inner);
            } break;
       }
-      if(modified && expr_parse_tree->is_end())
+      if(!modified)
       {
-        // end of expr parse tree, so we *have to* parse this or emit an error
+        assert(expr_parse_tree->is_end());
+
         if(expr_parse_tree->is_parsable())
-        {
-          // Somehow parse this
-        }
+          keep_on_parsing = false;
         else
         {
           emit_error() << "No matching function to call to.";
-          return error_expr();
+          return error_expr(range);
         }
       } 
-    } while(modified);
+      else
+        next_token();
+    } while(keep_on_parsing);
+
+    range.widen(prev_tok_loc);
+
+    return std::make_shared<FunctionCall>(range, args, Symbol(fn_name));
   }
 
   Expression::Ptr parse_expression()
   {
+    SourceRange range = current_token.range;
+
     // For now, expressions must be parenthesized: (...)
+    //    Note: We ignore parentheses in source range except for the unit expression `()`
     expect(TokenKind::LParen);
     Expression::Ptr inner;
     if(n1_peek(TokenKind::RParen))
       inner = parse_literal();
+    else if(accept(TokenKind::RParen))
+    {
+      range.widen(prev_tok_loc);
+      inner = std::make_shared<UnitExpression>(range);
+    }
     else
       inner = parse_call();
     expect(TokenKind::RParen);

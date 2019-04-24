@@ -34,6 +34,7 @@ add_executable(mf mf/src/main.cpp
                   mf/src/ast.cpp
                   mf/src/util.cpp
                   mf/src/ast_printer.cpp
-                  mf/src/log.cpp)
+                  mf/src/log.cpp
+                  mf/src/scope.cpp)
 
 
