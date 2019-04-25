@@ -14,7 +14,8 @@ private:
   std::uint_fast32_t calc_hash(Symbol symb)
   { return (1U << 31U) ^ (~(1U << 31U) & (symb.get_hash() + 1)); } 
   std::uint_fast32_t calc_hash(Type::Ptr typ)
-  { return ~(1U << 31U) & (typ->shared_id() + 1); }
+  { return (typ == nullptr ? static_cast<std::int_fast32_t>(std::uint_fast32_t(-1))
+                           : ~(1U << 31U) & (typ->shared_id() + 1)); }
 public:
   using Ptr = std::shared_ptr<TrieNode>;
 
@@ -37,9 +38,9 @@ public:
     return nodes[n->hash];
   }
 
-  bool lookup_step(TrieNode::Ptr current_node, std::variant<Type::Ptr, Symbol> typ_symb)
+  bool lookup_step(TrieNode::Ptr& current_node, std::variant<Type::Ptr, Symbol> typ_symb)
   {
-    assert(!current_node);
+    assert(current_node);
     const std::uint_fast32_t hash = (std::holds_alternative<Type::Ptr>(typ_symb)
                                    ? calc_hash(std::get<Type::Ptr>(typ_symb))
                                    : calc_hash(std::get<Symbol>(typ_symb)));
@@ -52,13 +53,13 @@ public:
 
   bool is_parsable(TrieNode::Ptr current_node)
   {
-    assert(!current_node);
+    assert(current_node);
     return current_node->nodes.find(0) != current_node->nodes.end();
   }
 
   bool is_end(TrieNode::Ptr current_node)
   {
-    assert(!current_node);
+    assert(current_node);
     return (current_node->nodes.size() == 1)
         && (current_node->nodes.find(0) != current_node->nodes.end());
   }
@@ -264,6 +265,8 @@ private:
         data.push_back(std::make_shared<Parameters>(pars_range, params.value()));
         for(auto& p : params.value())
         {
+          if(std::dynamic_pointer_cast<Unit>(p->type()))
+            continue;
           scope->add(p->identifier()->id(), p->type());
         }
         last = TokenKind::RParen;
@@ -324,6 +327,7 @@ private:
 
     Scope::Ptr scope = std::make_shared<Scope>();
     current_scope->make_parent(*scope);
+    current_scope = scope;
 
     if(!expect(TokenKind::LBrace))
       return error_stmt(range);
@@ -337,6 +341,8 @@ private:
     if(!expect(TokenKind::RBrace))
       return error_stmt(range);
     range.widen(current_token.range);
+
+    current_scope = current_scope->parent();
 
     return std::make_shared<Block>(range, scope, statements);
   }
@@ -425,14 +431,15 @@ private:
     //          - [x] nested calls, i.e. (if b1 then if b2 then {...} else {...})
     //          - [ ] unparenthesized arguments
     //              - [x] nested calls
-    //              - [ ] dangling if handled as `if b1 then (if b2 then {...} else {...})`
-    //              - [ ] detect recursion
+    //              - [x] dangling if handled as `if b1 then (if b2 then {...} else {...})`
+    //              - [ ] detect recursion TODO: back this up with tests
     auto current_node = expr_parse_tree->reset();
 
     auto range = current_token.range;
     bool keep_on_parsing = true;
     std::vector<Expression::Ptr> args;
     std::string fn_name;
+    Type::Ptr ret_type;
     TokenKind last_tok = TokenKind::Undef;
     do
     {
@@ -442,8 +449,9 @@ private:
         default: emit_error() << "Invalid function call syntax."; return error_expr();
 
         case TokenKind::RBrace:
+                 last_tok = TokenKind::Undef; modified = false; break;
         case TokenKind::RParen:
-        case TokenKind::Semicolon: modified = false; break;
+        case TokenKind::Semicolon: next_token(); last_tok = TokenKind::Undef; modified = false; break;
 
         case TokenKind::Id:
            {
@@ -452,14 +460,14 @@ private:
              if(last_tok != TokenKind::Id)
              {
                modified = expr_parse_tree->lookup_step(current_node, Symbol(name));
-               if(!fn_name.empty())
-                 fn_name += "$";
                fn_name += name;
                last_tok = TokenKind::Id;
+               expect(TokenKind::Id);
              }
              else // must be an arg
              {
                auto type = current_scope->lookup(Symbol(name));
+               fn_name += "$";
 
                // -> redo lookup step with arg's type
                modified = expr_parse_tree->lookup_step(current_node, type);
@@ -467,6 +475,7 @@ private:
                {
                  // OK, we have a function accepting this arg
                  args.emplace_back(std::make_shared<LiteralExpression>(current_token));
+                 expect(TokenKind::Id);
                }
                else 
                {
@@ -477,8 +486,10 @@ private:
                  //   and we 'recurse' into `if b2 then {...} else {...}` as arg
                  auto new_arg = parse_expression();
                  type = new_arg->type();
+                 args.emplace_back(new_arg);
 
                  modified = expr_parse_tree->lookup_step(current_node, type);
+
                  // now either modified is NOT false or it is, which means there is no matching function to call to
                  
 
@@ -487,38 +498,50 @@ private:
                last_tok = TokenKind::Undef;
              }
            } break;
+        case TokenKind::LBrace:
+           {
+             auto block = parse_block();
+             args.emplace_back(std::make_shared<LambdaExpression>(block));
+
+             modified = expr_parse_tree->lookup_step(current_node, block->type());
+             last_tok = TokenKind::LBrace;
+
+             // indicate in fn_name that there is an arg
+             fn_name += "$";
+           } break;
         case TokenKind::LParen:
            {
+             expect(TokenKind::LParen);
              auto inner = parse_expression();
+             expect(TokenKind::RParen);
              modified = expr_parse_tree->lookup_step(current_node, inner->type());
 
              if(modified)
                args.emplace_back(inner);
+             last_tok = TokenKind::LParen;
+
+             fn_name += "$";
            } break;
       }
       if(!modified)
       {
-        if(expr_parse_tree->is_end(current_node))
-        {
-          emit_error() << "Expression parsing failed."; // TODO: Be much more helpful here than just "oopsiewhoopsie"
-          return error_expr(range);
-        }
-
         if(expr_parse_tree->is_parsable(current_node))
+        {
+          ret_type = std::static_pointer_cast<FunctionType>(current_node->nodes[0]->fn->type())->return_type();
           keep_on_parsing = false;
+        }
         else
         {
+          // TODO: be more helpful with error message
           emit_error() << "No matching function to call to.";
           return error_expr(range);
         }
       } 
-      else
-        next_token();
     } while(keep_on_parsing);
 
     range.widen(prev_tok_loc);
 
-    return std::make_shared<FunctionCall>(range, args, Symbol(fn_name));
+    return std::make_shared<FunctionCall>(range, args, ret_type, Symbol(fn_name));
   }
 
   Expression::Ptr parse_expression()

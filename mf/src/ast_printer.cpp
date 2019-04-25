@@ -21,6 +21,9 @@ void ASTPrinter::leave(ExpressionStatement::Ptr)
 void ASTPrinter::leave(FunctionCall::Ptr)
 { if(depth > 0) --depth; }
 
+void ASTPrinter::leave(LambdaExpression::Ptr)
+{ if(depth > 0) --depth; }
+
 void ASTPrinter::visit(ErrorStatement::Ptr err_stmt)
 {
   streamout() << "[ErrorStatement <" << err_stmt->gid() << "> {";
@@ -105,6 +108,14 @@ void ASTPrinter::visit(FunctionCall::Ptr fn_call)
 {
   streamout() << "(FunctionCall <" << fn_call->gid() << "> {";
   distribute(fn_call->type());
+  std::cout << "} [" << fn_call->name() << "])\n";
+  ++depth;
+}
+
+void ASTPrinter::visit(LambdaExpression::Ptr lam)
+{
+  streamout() << "(LambdaExpression <" << lam->gid() << "> {";
+  distribute(lam->type());
   std::cout << "})\n";
   ++depth;
 }

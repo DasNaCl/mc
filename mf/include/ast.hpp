@@ -38,11 +38,11 @@ using ASTNodeMap = tsl::hopscotch_map<GIDTag*, T, GIDTagHasher, GIDTagComparer, 
                                       NeighborhoodSize, StoreHash, GrowthPolicy>;
 
 
-static constexpr std::uint_fast32_t prim_types[] = { hash_string("byte"),
-                                                   hash_string("char"),  hash_string("uchar"),
-                                                   hash_string("short"), hash_string("ushort"),
-                                                   hash_string("int"),   hash_string("uint"),
-                                                   hash_string("long"),  hash_string("ulong") };
+static constexpr std::uint_fast32_t prim_types[] = { hash_string("byte"), hash_string("bool"),
+                                                     hash_string("char"),  hash_string("uchar"),
+                                                     hash_string("short"), hash_string("ushort"),
+                                                     hash_string("int"),   hash_string("uint"),
+                                                     hash_string("long"),  hash_string("ulong") };
 static constexpr std::size_t prim_types_len = sizeof(prim_types) / sizeof(prim_types[0]);
 
 class Type : public GIDTag, public std::enable_shared_from_this<Type>
@@ -69,11 +69,13 @@ class Statement : public GIDTag, public std::enable_shared_from_this<Statement>
   friend struct ASTVisitor;
   friend class Function;
   friend class Block;
+  friend class LambdaExpression;
 public:
   using Ptr = std::shared_ptr<Statement>;
 
   Statement(SourceRange loc);
 
+  SourceRange source_range() const;
   virtual Type::Ptr type() = 0;
 protected:
   virtual void enter(ASTVisitor& vis);
@@ -112,7 +114,6 @@ public:
   using Ptr = std::shared_ptr<Unit>;
   
   Unit();
-
 private:
   void visit(ASTVisitor& vis) override;
 };
@@ -397,8 +398,9 @@ class FunctionCall : public Expression
 public:
   using Ptr = std::shared_ptr<FunctionCall>;
 
-  FunctionCall(SourceRange range, const std::vector<Expression::Ptr>& arguments, Symbol function_name);
+  FunctionCall(SourceRange range, const std::vector<Expression::Ptr>& arguments, Type::Ptr ret_typ, Symbol function_name);
 
+  Symbol name();
   Type::Ptr type() override;
 private:
   void enter(ASTVisitor& vis) override;
@@ -407,6 +409,8 @@ private:
 private:
   std::vector<Expression::Ptr> args;
   Symbol function_name;
+
+  Type::Ptr typ;
 };
 
 class UnitExpression : public Expression
@@ -417,6 +421,27 @@ public:
   UnitExpression(SourceRange range);
 
   Type::Ptr type() override;
+private:
+  void enter(ASTVisitor& vis) override;
+  void visit(ASTVisitor& vis) override;
+  void leave(ASTVisitor& vis) override;
+};
+
+class LambdaExpression : public Expression
+{
+public:
+  using Ptr = std::shared_ptr<LambdaExpression>;
+
+  // TODO: Add args
+  LambdaExpression(Statement::Ptr stmt);
+
+  Type::Ptr type() override;
+private:
+  void enter(ASTVisitor& vis) override;
+  void visit(ASTVisitor& vis) override;
+  void leave(ASTVisitor& vis) override;
+private:
+  Statement::Ptr block;
 };
 
 
@@ -443,6 +468,8 @@ struct ASTVisitor
   virtual void enter(LiteralExpression::Ptr lit_expr) {  }
   virtual void enter(BinaryExpression::Ptr bin_expr) {  }
   virtual void enter(FunctionCall::Ptr fn_call) {  }
+  virtual void enter(UnitExpression::Ptr unit) {  }
+  virtual void enter(LambdaExpression::Ptr lambda) {  }
 
 
   virtual void visit(Statement::Ptr stmt) {  }
@@ -460,6 +487,8 @@ struct ASTVisitor
   virtual void visit(LiteralExpression::Ptr lit_expr) {  }
   virtual void visit(BinaryExpression::Ptr bin_expr) {  }
   virtual void visit(FunctionCall::Ptr fn_call) {  }
+  virtual void visit(UnitExpression::Ptr unit) {  }
+  virtual void visit(LambdaExpression::Ptr lambda) {  }
 
 
   virtual void leave(Statement::Ptr stmt) {  }
@@ -477,7 +506,8 @@ struct ASTVisitor
   virtual void leave(LiteralExpression::Ptr lit_expr) {  }
   virtual void leave(BinaryExpression::Ptr bin_expr) {  }
   virtual void leave(FunctionCall::Ptr fn_call) {  }
-
+  virtual void leave(UnitExpression::Ptr unit) {  }
+  virtual void leave(LambdaExpression::Ptr lambda) {  }
 
   virtual void visit(Type::Ptr type) {  }
   virtual void visit(ErrorType::Ptr type) {  }

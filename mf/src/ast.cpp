@@ -12,6 +12,9 @@ Statement::Statement(SourceRange loc)
   : loc(loc)
 {  }
 
+SourceRange Statement::source_range() const
+{ return loc; }
+
 Expression::Expression(SourceRange loc)
   : loc(loc)
 {  }
@@ -161,6 +164,10 @@ Parameters::Parameters(SourceRange loc, const std::vector<Parameter::Ptr>& list)
 
 Type::Ptr Parameters::type()
 {
+  assert(!list.empty());
+  if(list.size() == 1)
+    return list.front()->type();
+
   std::vector<Type::Ptr> types;
   for(auto& p : list)
     types.emplace_back(p->type());
@@ -172,7 +179,7 @@ Block::Block(SourceRange loc, Scope::Ptr par_scope, const std::vector<Statement:
 { assert(par_scope); }
 
 Type::Ptr Block::type()
-{ return std::make_shared<Unit>(); }
+{ return std::make_shared<FunctionType>(std::make_shared<Unit>(), std::make_shared<Unit>()); }
 
 Function::Function(SourceRange loc, Scope::Ptr par_scope, const std::vector<Statement::Ptr>& data, Type::Ptr ret_typ)
   : Statement(loc), scope(par_scope), data(data), ret_typ(ret_typ)
@@ -264,14 +271,16 @@ Type::Ptr BinaryExpression::type()
   return lt;
 }
 
-FunctionCall::FunctionCall(SourceRange range, const std::vector<Expression::Ptr>& arguments, Symbol function_name)
-  : Expression(range), args(arguments), function_name(function_name)
+FunctionCall::FunctionCall(SourceRange range, const std::vector<Expression::Ptr>& arguments, Type::Ptr type, Symbol function_name)
+  : Expression(range), args(arguments), function_name(function_name), typ(type)
 {  }
+
+Symbol FunctionCall::name()
+{ return function_name; }
 
 Type::Ptr FunctionCall::type()
 {
-  // TODO: optimistically return function's return type
-  return std::make_shared<TemplateType>();
+  return typ;
 }
 
 UnitExpression::UnitExpression(SourceRange range)
@@ -283,6 +292,15 @@ Type::Ptr UnitExpression::type()
   return std::make_shared<Unit>();
 }
 
+LambdaExpression::LambdaExpression(Statement::Ptr stmt)
+  : Expression(stmt->source_range()), block(stmt)
+{  }
+
+Type::Ptr LambdaExpression::type() 
+{
+  // TODO: Add params
+  return block->type();
+}
 
 void ASTVisitor::visit_all(const std::vector<Statement::Ptr>& ast)
 {
@@ -563,6 +581,9 @@ void FunctionCall::enter(ASTVisitor& visitor)
 {
   Expression::enter(visitor);
   visitor.enter(std::static_pointer_cast<FunctionCall>(shared_from_this()));
+
+  for(auto& a : args)
+    a->enter(visitor);
 }
 void FunctionCall::visit(ASTVisitor& visitor)
 {
@@ -577,8 +598,50 @@ void FunctionCall::visit(ASTVisitor& visitor)
 }
 void FunctionCall::leave(ASTVisitor& visitor)
 {
+  for(auto& a : args)
+    a->leave(visitor);
   visitor.leave(std::static_pointer_cast<FunctionCall>(shared_from_this()));
   Expression::leave(visitor);
 }
 
+void UnitExpression::enter(ASTVisitor& visitor)
+{
+  Expression::enter(visitor);
+  visitor.enter(std::static_pointer_cast<UnitExpression>(shared_from_this()));
+}
+void UnitExpression::visit(ASTVisitor& visitor)
+{
+  UnitExpression::enter(visitor);
+  Expression::visit(visitor);
+  visitor.visit(std::static_pointer_cast<UnitExpression>(shared_from_this()));
+
+  UnitExpression::leave(visitor);
+}
+void UnitExpression::leave(ASTVisitor& visitor)
+{
+  visitor.leave(std::static_pointer_cast<UnitExpression>(shared_from_this()));
+  Expression::leave(visitor);
+}
+
+void LambdaExpression::enter(ASTVisitor& visitor)
+{
+  Expression::enter(visitor);
+  visitor.enter(std::static_pointer_cast<LambdaExpression>(shared_from_this()));
+  block->enter(visitor);
+}
+void LambdaExpression::visit(ASTVisitor& visitor)
+{
+  LambdaExpression::enter(visitor);
+  Expression::visit(visitor);
+  visitor.visit(std::static_pointer_cast<LambdaExpression>(shared_from_this()));
+  block->visit(visitor);
+
+  LambdaExpression::leave(visitor);
+}
+void LambdaExpression::leave(ASTVisitor& visitor)
+{
+  visitor.leave(std::static_pointer_cast<LambdaExpression>(shared_from_this()));
+  Expression::leave(visitor);
+  block->leave(visitor);
+}
 

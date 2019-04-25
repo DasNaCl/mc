@@ -249,3 +249,6 @@ std::ostream& operator<<(std::ostream& os, const std::vector<Symbol>& symbs)
 std::uint_fast32_t Symbol::get_hash() const
 { return hash; }
 
+const std::string& Symbol::get_string() const
+{ return symbols[hash]; }
+
