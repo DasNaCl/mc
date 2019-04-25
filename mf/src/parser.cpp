@@ -19,15 +19,15 @@ public:
   using Ptr = std::shared_ptr<TrieNode>;
 
   TrieNode(Symbol name)
-    : dat(name), hash(calc_hash(name))
+    : dat(name), hash(calc_hash(name)), fn(nullptr)
   {  }
 
   TrieNode(Type::Ptr typ)
-    : dat(typ), hash(calc_hash(typ))
+    : dat(typ), hash(calc_hash(typ)), fn(nullptr)
   {  }
 
-  TrieNode()
-    : dat(std::monostate{}), hash(0), current_node()
+  TrieNode(Function::Ptr fn = nullptr)
+    : dat(std::monostate{}), hash(0), fn(fn)
   {  }
 
   TrieNode::Ptr add_node(TrieNode::Ptr n)
@@ -37,10 +37,9 @@ public:
     return nodes[n->hash];
   }
 
-  bool lookup_step(std::variant<Type::Ptr, Symbol> typ_symb)
+  bool lookup_step(TrieNode::Ptr current_node, std::variant<Type::Ptr, Symbol> typ_symb)
   {
-    if(!current_node)
-      current_node = shared_from_this();
+    assert(!current_node);
     const std::uint_fast32_t hash = (std::holds_alternative<Type::Ptr>(typ_symb)
                                    ? calc_hash(std::get<Type::Ptr>(typ_symb))
                                    : calc_hash(std::get<Symbol>(typ_symb)));
@@ -51,31 +50,29 @@ public:
     return true;
   }
 
-  bool is_parsable()
+  bool is_parsable(TrieNode::Ptr current_node)
   {
-    if(!current_node)
-      current_node = shared_from_this();
+    assert(!current_node);
     return current_node->nodes.find(0) != current_node->nodes.end();
   }
 
-  bool is_end()
+  bool is_end(TrieNode::Ptr current_node)
   {
-    if(!current_node)
-      current_node = shared_from_this();
+    assert(!current_node);
     return (current_node->nodes.size() == 1)
         && (current_node->nodes.find(0) != current_node->nodes.end());
   }
 
-  void reset()
+  [[nodiscard]] TrieNode::Ptr reset()
   {
-    current_node = nullptr;
+    return shared_from_this();
   }
 
   std::variant<std::monostate, Symbol, Type::Ptr> dat;
   std::uint_fast64_t hash;
   std::unordered_map<std::uint_fast64_t, TrieNode::Ptr> nodes;
 
-  TrieNode::Ptr current_node;
+  Function::Ptr fn;
 };
 
 struct Parser
@@ -117,7 +114,8 @@ public:
           cpy = cpy->add_node(std::make_shared<TrieNode>(typ));
         }
       }
-      cpy->add_node(std::make_shared<TrieNode>());
+      // Leaf should know about the function to get the return type of it
+      cpy->add_node(std::make_shared<TrieNode>(fn));
     }
     expr_parse_tree = root;
     tokenizer.reset();
@@ -423,12 +421,19 @@ private:
 
   Expression::Ptr parse_call()
   {
-    expr_parse_tree->reset();
+    // TODO: adapt for:
+    //          - [x] nested calls, i.e. (if b1 then if b2 then {...} else {...})
+    //          - [ ] unparenthesized arguments
+    //              - [x] nested calls
+    //              - [ ] dangling if handled as `if b1 then (if b2 then {...} else {...})`
+    //              - [ ] detect recursion
+    auto current_node = expr_parse_tree->reset();
 
     auto range = current_token.range;
     bool keep_on_parsing = true;
     std::vector<Expression::Ptr> args;
     std::string fn_name;
+    TokenKind last_tok = TokenKind::Undef;
     do
     {
       bool modified = false;
@@ -436,31 +441,56 @@ private:
       {
         default: emit_error() << "Invalid function call syntax."; return error_expr();
 
-        case TokenKind::RParen: modified = false; break; // <- TODO: remove in future upon parentheses elimination
+        case TokenKind::RBrace:
+        case TokenKind::RParen:
+        case TokenKind::Semicolon: modified = false; break;
+
         case TokenKind::Id:
            {
              std::string name(reinterpret_cast<const char*>(current_token.data));
-             modified = expr_parse_tree->lookup_step(Symbol(name));
 
-             if(modified)
+             if(last_tok != TokenKind::Id)
              {
+               modified = expr_parse_tree->lookup_step(current_node, Symbol(name));
                if(!fn_name.empty())
                  fn_name += "$";
                fn_name += name;
+               last_tok = TokenKind::Id;
              }
              else // must be an arg
              {
-               args.emplace_back(std::make_shared<LiteralExpression>(current_token));
                auto type = current_scope->lookup(Symbol(name));
 
                // -> redo lookup step with arg's type
-               modified = expr_parse_tree->lookup_step(type);
+               modified = expr_parse_tree->lookup_step(current_node, type);
+               if(modified)
+               {
+                 // OK, we have a function accepting this arg
+                 args.emplace_back(std::make_shared<LiteralExpression>(current_token));
+               }
+               else 
+               {
+                 // NOT OK, this may not be an arg and we start to recursively parse an expression
+                 //         which serves as "real" argument to this function
+                 // Example: if b1 then if b2 then {...} else {...}
+                 //   would be parsed unto `if b1 then` then the trie will fail for the second if
+                 //   and we 'recurse' into `if b2 then {...} else {...}` as arg
+                 auto new_arg = parse_expression();
+                 type = new_arg->type();
+
+                 modified = expr_parse_tree->lookup_step(current_node, type);
+                 // now either modified is NOT false or it is, which means there is no matching function to call to
+                 
+
+                 // TODO: somehow detect infinite recursion here (can't parse expressions forever if there is simply no fn)
+               }
+               last_tok = TokenKind::Undef;
              }
            } break;
         case TokenKind::LParen:
            {
              auto inner = parse_expression();
-             modified = expr_parse_tree->lookup_step(inner->type());
+             modified = expr_parse_tree->lookup_step(current_node, inner->type());
 
              if(modified)
                args.emplace_back(inner);
@@ -468,9 +498,13 @@ private:
       }
       if(!modified)
       {
-        assert(expr_parse_tree->is_end());
+        if(expr_parse_tree->is_end(current_node))
+        {
+          emit_error() << "Expression parsing failed."; // TODO: Be much more helpful here than just "oopsiewhoopsie"
+          return error_expr(range);
+        }
 
-        if(expr_parse_tree->is_parsable())
+        if(expr_parse_tree->is_parsable(current_node))
           keep_on_parsing = false;
         else
         {
@@ -489,23 +523,29 @@ private:
 
   Expression::Ptr parse_expression()
   {
-    SourceRange range = current_token.range;
-
-    // For now, expressions must be parenthesized: (...)
-    //    Note: We ignore parentheses in source range except for the unit expression `()`
-    expect(TokenKind::LParen);
-    Expression::Ptr inner;
-    if(n1_peek(TokenKind::RParen))
-      inner = parse_literal();
-    else if(accept(TokenKind::RParen))
+    const bool is_literal = (peek(TokenKind::Number) || peek(TokenKind::Character)
+                          || peek(TokenKind::Id)     || peek(TokenKind::String));
+    if(peek(TokenKind::LParen))
     {
-      range.widen(prev_tok_loc);
-      inner = std::make_shared<UnitExpression>(range);
+      SourceRange range = current_token.range;
+      expect(TokenKind::LParen);
+      if(accept(TokenKind::RParen))
+      {
+        range.widen(prev_tok_loc);
+        return std::make_shared<UnitExpression>(range);
+      }
+      else
+      {
+        auto expr = parse_expression();
+
+        // expression surrounded by parentheses
+        expect(TokenKind::RParen);
+        return expr;
+      }
     }
-    else
-      inner = parse_call();
-    expect(TokenKind::RParen);
-    return inner;
+    else if(is_literal && n1_peek(TokenKind::RParen))
+      return parse_literal(); // f (42)
+    return parse_call();
   }
 
   Type::Ptr parse_type(Type::Ptr type = nullptr)
