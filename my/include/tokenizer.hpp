@@ -24,10 +24,6 @@ std::string to_string(TokenKind tok);
 
 struct Token
 {
-  SourceRange range;
-  TokenKind kind;
-  void* data;
-
   Token() = default;
   Token(SourceRange range, TokenKind kind)
     : range(range), kind(kind)
@@ -36,9 +32,23 @@ struct Token
     : range(range), kind(kind), data(data)
   {  }
 
+  TokenKind tok_kind() const
+  { return kind; }
+
+  const char* data_as_text() const
+  { return reinterpret_cast<const char*>(data); }
+
+  const SourceRange& loc() const
+  { return range; }
+
   explicit operator std::string() const;
 
   friend std::ostream& operator<<(std::ostream& os, const Token& tok);
+private:
+  SourceRange range;
+  TokenKind kind;
+  void* data;
+
 };
 
 class Tokenizer

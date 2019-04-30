@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8.2)
 
-project(mf VERSION 0.0.1)
+project(my VERSION 0.0.1)
 set(CMAKE_CXX_STANDARD 17)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -21,20 +21,19 @@ add_definitions(-DFMT_HEADER_ONLY)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/hopscotch-map)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/mf/include/)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/my/include/)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/hopscotch-map/include/)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/spdlog/include/)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/fmt/include/)
 
-add_executable(mf mf/src/main.cpp
-                  mf/src/SourceRange.cpp
-                  mf/src/tokenizer.cpp
-                  mf/src/parser.cpp
-                  mf/src/ast.cpp
-                  mf/src/util.cpp
-                  mf/src/ast_printer.cpp
-                  mf/src/log.cpp
-                  mf/src/scope.cpp)
+add_executable(my my/src/main.cpp
+                  my/src/SourceRange.cpp
+                  my/src/tokenizer.cpp
+                  my/src/parser.cpp
+                  my/src/ast.cpp
+                  my/src/util.cpp
+                  my/src/log.cpp
+                  )
 
 

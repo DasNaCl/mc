@@ -1,7 +1,6 @@
+
 #include <tokenizer.hpp>
 #include <parser.hpp>
-
-#include <ast_printer.hpp>
 
 #include <util.hpp>
 
@@ -43,8 +42,11 @@ int main(int argc, const char* argv[])
       auto astnodes = parse(tokenizer);
 
       std::cout << "Abstract syntax tree of module \"" << tokenizer.module_name() << "\": \n";
-      ASTPrinter printer;
-      printer.visit_all(astnodes);
+      for(auto& astnode : astnodes)
+      {
+        astnode->print(std::cout);
+        std::cout << "\n";
+      }
     }
   }
   else if(map["t"]->get<bool>())
@@ -56,7 +58,7 @@ int main(int argc, const char* argv[])
       do
       {
         std::cout << (tok = tokenizer.get()) << "\n";
-      } while(tok.kind != TokenKind::EndOfFile);
+      } while(tok.tok_kind() != TokenKind::EndOfFile);
       if(it + 1 != tokenizers.end())
         std::cout << "\n";
     }
