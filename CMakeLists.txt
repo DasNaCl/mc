@@ -28,7 +28,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/spdlog/include/)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/fmt/include/)
 
 add_executable(my my/src/main.cpp
-                  my/src/SourceRange.cpp
+                  my/src/source_range.cpp
                   my/src/tokenizer.cpp
                   my/src/parser.cpp
                   my/src/ast.cpp

@@ -1,4 +1,4 @@
-#include <SourceRange.hpp>
+#include <source_range.hpp>
 
 SourceRange::SourceRange(const char* module, std::size_t column_beg, std::size_t row_beg,
                                              std::size_t column_end, std::size_t row_end)

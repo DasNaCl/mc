@@ -1,6 +1,6 @@
 #pragma once
 
-#include <SourceRange.hpp>
+#include <source_range.hpp>
 #include <tokenizer.hpp>
 #include <symbol.hpp>
 #include <variant>
