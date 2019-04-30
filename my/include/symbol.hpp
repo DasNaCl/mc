@@ -1,6 +1,7 @@
 #pragma once
 
 #include <tsl/hopscotch_map.h>
+#include <tsl/hopscotch_set.h>
 
 #include <cstdint>
 #include <iosfwd>
@@ -47,5 +48,16 @@ template<class T,
 using SymbolMap = tsl::hopscotch_map<Symbol, T, SymbolHasher, SymbolComparer, std::allocator<std::pair<Symbol, T>>,
                                       NeighborhoodSize, StoreHash, GrowthPolicy>;
 
+using SymbolSet = tsl::hopscotch_set<Symbol, SymbolHasher, SymbolComparer, std::allocator<Symbol>,
+                                     62, false, tsl::hh::power_of_two_growth_policy<2>>;
+template<unsigned int NeighborhoodSize = 62,
+         bool StoreHash = false,
+         class GrowthPolicy = tsl::hh::power_of_two_growth_policy<2>>
+using SymbolSetT = tsl::hopscotch_set<Symbol, SymbolHasher, SymbolComparer, std::allocator<Symbol>,
+                                         NeighborhoodSize, StoreHash, GrowthPolicy>;
+
+bool operator==(const Symbol& a, const Symbol& b);
+bool operator!=(const Symbol& a, const Symbol& b);
 std::ostream& operator<<(std::ostream& os, const std::vector<Symbol>& symbs);
+
 

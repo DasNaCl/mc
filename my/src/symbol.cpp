@@ -81,3 +81,14 @@ std::uint_fast32_t Symbol::get_hash() const
 const std::string& Symbol::get_string() const
 { return symbols[hash]; }
 
+bool operator==(const Symbol& a, const Symbol& b)
+{
+  return a.get_hash() == b.get_hash();
+}
+
+bool operator!=(const Symbol& a, const Symbol& b)
+{
+  return a.get_hash() != b.get_hash();
+}
+
+

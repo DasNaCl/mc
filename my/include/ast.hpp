@@ -39,6 +39,7 @@ class Statement : public GIDTag, public std::enable_shared_from_this<Statement>
 {
 public:
   using Ptr = std::shared_ptr<Statement>;
+  friend Statement::Ptr execute(Statement::Ptr root);
 
   Statement(SourceRange loc);
 
@@ -46,12 +47,21 @@ public:
   virtual void print(std::ostream& os) = 0;
 
   SourceRange source_range() const;
+protected:
+  virtual Statement::Ptr reduce_step_normal() = 0;
+  virtual Statement::Ptr reduce_step_callbyname() = 0;
+  virtual Statement::Ptr reduce_step_callbyvalue() = 0;
 private:
   SourceRange loc;
 };
 
+class Identifier;
+
 class Expression : public GIDTag, public std::enable_shared_from_this<Expression>
 {
+  friend class FunctionCall;
+  friend class Definition;
+  friend class Lambda;
 public:
   using Ptr = std::shared_ptr<Expression>;
 
@@ -61,11 +71,15 @@ public:
   virtual void print(std::ostream& os) = 0;
 
   SourceRange source_range();
+protected:
+  virtual void fv(SymbolSet& cur) = 0;
+  virtual void replace(std::shared_ptr<Identifier> what, Expression::Ptr with) {  }
+  virtual Expression::Ptr reduce_step_normal() = 0;
+  virtual Expression::Ptr reduce_step_callbyname() = 0;
+  virtual Expression::Ptr reduce_step_callbyvalue() = 0;
 private:
   SourceRange loc;
 };
-
-class Identifier;
 
 class ErrorStatement : public Statement
 {
@@ -76,6 +90,10 @@ public:
 
   Statement::Ptr clone() override;
   void print(std::ostream& os) override;
+private:
+  Statement::Ptr reduce_step_normal() override;
+  Statement::Ptr reduce_step_callbyname() override;
+  Statement::Ptr reduce_step_callbyvalue() override;
 };
 
 class Definition : public Statement
@@ -90,6 +108,10 @@ public:
 
   std::shared_ptr<Identifier> identifier() const;
 private:
+  Statement::Ptr reduce_step_normal() override;
+  Statement::Ptr reduce_step_callbyname() override;
+  Statement::Ptr reduce_step_callbyvalue() override;
+private:
   Expression::Ptr id;
   Expression::Ptr body;
 };
@@ -103,6 +125,11 @@ public:
 
   Expression::Ptr clone() override;
   void print(std::ostream& os) override;
+private:
+  void fv(SymbolSet& cur) override {}
+  Expression::Ptr reduce_step_normal() override;
+  Expression::Ptr reduce_step_callbyname() override;
+  Expression::Ptr reduce_step_callbyvalue() override;
 };
 
 class Identifier : public Expression
@@ -116,6 +143,11 @@ public:
   void print(std::ostream& os) override;
 
   Symbol id() const;
+private:
+  void fv(SymbolSet& cur) override;
+  Expression::Ptr reduce_step_normal() override;
+  Expression::Ptr reduce_step_callbyname() override;
+  Expression::Ptr reduce_step_callbyvalue() override;
 private:
   Symbol symbol;
 };
@@ -132,6 +164,12 @@ public:
 
   bool is_simple() const;
 private:
+  void fv(SymbolSet& cur) override;
+  void replace(Identifier::Ptr what, Expression::Ptr with) override;
+  Expression::Ptr reduce_step_normal() override;
+  Expression::Ptr reduce_step_callbyname() override;
+  Expression::Ptr reduce_step_callbyvalue() override;
+private:
   Expression::Ptr fn;
   Expression::Ptr arg;
 };
@@ -145,6 +183,15 @@ public:
   void print(std::ostream& os) override;
 
   Expression::Ptr clone() override;
+  Expression::Ptr fn_body() const;
+
+  void replace(Expression::Ptr what);
+private:
+  void fv(SymbolSet& cur) override;
+  void replace(Identifier::Ptr what, Expression::Ptr with) override;
+  Expression::Ptr reduce_step_normal() override;
+  Expression::Ptr reduce_step_callbyname() override;
+  Expression::Ptr reduce_step_callbyvalue() override;
 private:
   Identifier::Ptr binding;
   Expression::Ptr body;
