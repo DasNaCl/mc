@@ -7,6 +7,13 @@
 #include <iostream>
 #include <fstream>
 
+#ifndef NDEBUG
+#include <csignal>
+
+void do_nothing_on_sigint(int)
+{  }
+#endif
+
 int main(int argc, const char* argv[])
 {
   CmdOptions opt("mf", "This is the compiler for the mf language.");
@@ -14,8 +21,21 @@ int main(int argc, const char* argv[])
     ("t,just-tokenize", "Emit tokens of given modules.")
     ("p,just-parse", "Emit abstract syntax tree of given modules.")
     (",-,f,files", "List of files to compile.", CmdOptions::TaggedValue<std::vector<std::string>>::create(), "")
+
+#ifndef NDEBUG
+    ("enable-breakpoints", "DEBUG: Emit SIGINT signal whenever something interesting happens. Useful for debugging.")
+#endif
     ;
   auto map = opt.parse(argc, argv);
+
+#ifndef NDEBUG
+  if(map["enable-breakpoints"]->get<bool>())
+  {
+    StaticOptions::enable_breakpoints();
+    std::signal(SIGINT, do_nothing_on_sigint);
+  }
+#endif
+
   std::vector<std::ifstream> input_files;
   std::vector<Tokenizer> tokenizers;
   if(auto vec = map["f"]->get<std::vector<std::string>>(); !vec.empty())

@@ -11,6 +11,18 @@
 
 std::uint_fast32_t hash_combine(std::uint_fast32_t lhs, std::uint_fast32_t rhs);
 
+struct StaticOptions
+{
+  friend void breakpoint();
+#ifndef NDEBUG
+  static void enable_breakpoints();
+private:
+  static bool enabled_breakpoints;
+#endif
+};
+
+extern void breakpoint();
+
 struct CmdOptions
 {
   template<typename T>

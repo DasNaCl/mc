@@ -4,14 +4,6 @@
 
 #include <tsl/bhopscotch_set.h>
 
-#ifndef NDEBUG
-#include <csignal>
-#include <cassert>
-
-void do_nothing_on_sigint(int)
-{  }
-#endif
-
 struct Parser
 {
 public:
@@ -19,10 +11,6 @@ public:
     : tokenizer(tokenizer), ast()
   {
     next_token(); next_token(); next_token();
-
-#ifndef NDEBUG
-    std::signal(SIGINT, do_nothing_on_sigint);
-#endif
   }
 
   std::vector<Statement::Ptr> parse() &&
@@ -39,9 +27,7 @@ public:
 
   MessageCollector emit_error()
   {
-#ifndef NDEBUG
-  std::raise(SIGINT);
-#endif
+    breakpoint();
     return ::emit_error(tokenizer.module_name(), current_token.loc().column_beg, current_token.loc().row_beg);
   }
 
