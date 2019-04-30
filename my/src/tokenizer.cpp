@@ -84,6 +84,7 @@ char Tokenizer::read()
       if(!(std::getline(handle, linebuf)))
       {
         col = 1;
+        linebuf = "";
         return EOF;
       }
       else
@@ -94,6 +95,7 @@ char Tokenizer::read()
           if(!(std::getline(handle, linebuf)))
           {
             col = 1;
+            linebuf = "";
             return EOF;
           }
         }

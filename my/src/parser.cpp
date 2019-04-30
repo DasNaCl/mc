@@ -110,6 +110,17 @@ private:
     }
     return true;
   }
+
+  bool expect_or(TokenKind kind0, TokenKind kind1)
+  {
+    if(!accept(kind0) && !accept(kind1))
+    {
+      emit_error() << "Expected either token \"" << to_string(kind0) << "\" or \"" << to_string(kind1) << "\" but got \""
+                   << to_string(current_token.tok_kind()) << "\".";
+      return false;
+    }
+    return true;
+  }
 private:
   Tokenizer& tokenizer;
   std::vector<Statement::Ptr> ast;
@@ -137,8 +148,10 @@ private:
 
     auto body = parse_expression();
 
-    expect(TokenKind::Semicolon);
+    expect_or(TokenKind::Semicolon, TokenKind::EndOfFile);
 
+    if(auto is_id = std::dynamic_pointer_cast<Identifier>(name))
+      trees[is_id->id()] = body;
     range.widen(prev_tok_loc);
     return std::make_shared<Definition>(range, name, body);
   }
@@ -164,10 +177,7 @@ private:
 
     range.widen(prev_tok_loc);
     if(auto is_id = std::dynamic_pointer_cast<Identifier>(var))
-    {
-      trees[is_id->id()] = body;
       return std::make_shared<Lambda>(range, is_id, body);
-    }
     return error_expr(range);
   }
 
@@ -195,7 +205,7 @@ private:
                             };
     case TokenKind::Lambda: return parse_fn(false);
     case TokenKind::Id:     {
-                              auto it = trees.find(tok.data_as_text());
+                              auto it = trees.find(Symbol(tok.data_as_text()));
                               if(it != trees.end())
                                 return it->second->clone();
                               return std::make_shared<Identifier>(tok.loc(), tok.data_as_text());
@@ -220,7 +230,7 @@ private:
 
     case TokenKind::Id:
        {
-         auto it = trees.find(tok.data_as_text());
+         auto it = trees.find(Symbol(tok.data_as_text()));
          auto right = it != trees.end() ? it->second->clone() : std::make_shared<Identifier>(tok.loc(), tok.data_as_text());
          auto range = left->source_range();
          range.widen(right->source_range());
