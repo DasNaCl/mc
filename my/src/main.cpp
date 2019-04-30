@@ -2,7 +2,7 @@
 #include <tokenizer.hpp>
 #include <parser.hpp>
 
-#include <util.hpp>
+#include <myopts.hpp>
 
 #include <iostream>
 #include <fstream>

@@ -2,7 +2,7 @@
 
 #include <SourceRange.hpp>
 #include <tokenizer.hpp>
-#include <util.hpp>
+#include <symbol.hpp>
 #include <variant>
 #include <memory>
 

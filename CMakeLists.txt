@@ -34,6 +34,8 @@ add_executable(my my/src/main.cpp
                   my/src/ast.cpp
                   my/src/util.cpp
                   my/src/log.cpp
+                  my/src/symbol.cpp
+                  my/src/myopts.cpp
                   )
 
 
