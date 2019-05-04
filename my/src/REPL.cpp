@@ -6,33 +6,48 @@
 
 #include <algorithm>
 #include <iostream>
+#include <sstream>
 #include <cctype>
 
 void REPL::loop()
 {
   Statement::Ptr root;
-  std::string input;
-  while(input != "q" && input != "quit")
+  while(!(std::dynamic_pointer_cast<ErrorStatement>(root)))
   {
     if(std::cin.eof())
-    {
-      input = "q";
-      continue;
-    }
+      break;
     if(!root)
     {
       // parse STDIN
-      input = parse_input();
+      root = parse_input().front(); // <- TODO: fixme to be more generic
     }
     else
     {
       // apply evaluation strategy
+      // TODO: lookup strategy in global config [<- can be served via cmd arg]
+      ///// for now just cbv
+
+      std::string last_ast, new_ast;
+      do
+      {
+        root = root->eval(EvaluationStrategy::CallByValue);
+
+        std::stringstream aststream;
+        root->print(aststream);
+
+        new_ast = aststream.str();
+        last_ast = new_ast;
+      } while(last_ast != new_ast);
       
+      // print
+      root->print(std::cout);
+
+      root = nullptr;
     }
   }
 }
 
-std::string REPL::parse_input()
+std::vector<Statement::Ptr> REPL::parse_input()
 {
 redo:
   std::cout << " > ";
@@ -43,17 +58,13 @@ redo:
                  [](unsigned char ch) { return std::tolower(ch); });
 
   if(input == "q" || input == "quit")
-    return input;
+    return { std::make_shared<ErrorStatement>(SourceRange()) };
   else if(input.empty())
     goto redo;
 
-  /*
-  auto toks = tokenize(input);
-  if(toks.size() > 0 && toks[0].tok_kind() != TokenKind::Equal
-  && (toks.size() <= 1 || toks[1].tok_kind() != TokenKind::Equal))
-    toks.insert(toks.begin(), Token(TokenKind::Equal, "="));
-  TODO
-  */
-  return "";
+  std::stringstream ss;
+  Tokenizer tokenizer("REPL", ss);
+
+  return parse(tokenizer);
 }
 

@@ -9,6 +9,13 @@
 #include <tsl/hopscotch_map.h>
 #include <tsl/hopscotch_set.h>
 
+enum class EvaluationStrategy
+{
+  CallByValue,
+  CallByName,
+  Normal
+};
+
 struct GIDTag
 {
   std::uint_fast64_t gid() const;
@@ -42,6 +49,17 @@ public:
   friend Statement::Ptr execute(Statement::Ptr root);
 
   Statement(SourceRange loc);
+
+  Statement::Ptr eval(EvaluationStrategy strat)
+  {
+    switch(strat)
+    {
+    default:
+    case EvaluationStrategy::CallByValue: return reduce_step_callbyvalue();
+    case EvaluationStrategy::CallByName: return reduce_step_callbyname();
+    case EvaluationStrategy::Normal: return reduce_step_normal();
+    }
+  }
 
   virtual Statement::Ptr clone() = 0;
   virtual void print(std::ostream& os) = 0;
