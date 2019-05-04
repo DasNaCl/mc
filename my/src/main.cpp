@@ -1,6 +1,7 @@
 
 #include <tokenizer.hpp>
 #include <parser.hpp>
+#include <REPL.hpp>
 
 #include <myopts.hpp>
 
@@ -20,6 +21,7 @@ int main(int argc, const char* argv[])
   opt.add_options()
     ("t,just-tokenize", "Emit tokens of given modules.")
     ("p,just-parse", "Emit abstract syntax tree of given modules.")
+    ("repl", "Read-Eval-Print loop.")
     (",-,f,files", "List of files to compile.", CmdOptions::TaggedValue<std::vector<std::string>>::create(), "")
 
 #ifndef NDEBUG
@@ -82,6 +84,12 @@ int main(int argc, const char* argv[])
       if(it + 1 != tokenizers.end())
         std::cout << "\n";
     }
+  }
+  else if(map["repl"]->get<bool>())
+  {
+    //TODO: Load modules passed by -f
+    REPL repl;
+    repl.loop();
   }
   else
   {

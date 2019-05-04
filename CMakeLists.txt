@@ -36,6 +36,7 @@ add_executable(my my/src/main.cpp
                   my/src/log.cpp
                   my/src/symbol.cpp
                   my/src/myopts.cpp
+                  my/src/REPL.cpp
                   )
 
 
