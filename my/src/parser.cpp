@@ -68,13 +68,37 @@ private:
   }
   
   bool peek(TokenKind kind) const
-  { return current_token.tok_kind() == kind; }
+  {
+    if(kind == TokenKind::Id && current_token.tok_kind() == TokenKind::Id)
+    {
+      // see if the identifier is a already known subtree
+      const char* text = current_token.data_as_text();
+      return trees.find(Symbol(text)) == trees.end();
+    }
+    return current_token.tok_kind() == kind;
+  }
 
   bool n1_peek(TokenKind kind) const
-  { return lookahead.first.tok_kind() == kind; }
+  {
+    if(kind == TokenKind::Id && lookahead.first.tok_kind() == TokenKind::Id)
+    {
+      // see if the identifier is a already known subtree
+      const char* text = lookahead.first.data_as_text();
+      return trees.find(Symbol(text)) == trees.end();
+    }
+    return lookahead.first.tok_kind() == kind;
+  }
 
   bool n2_peek(TokenKind kind) const
-  { return lookahead.second.tok_kind() == kind; }
+  {
+    if(kind == TokenKind::Id && lookahead.second.tok_kind() == TokenKind::Id)
+    {
+      // see if the identifier is a already known subtree
+      const char* text = lookahead.second.data_as_text();
+      return trees.find(Symbol(text)) == trees.end();
+    }
+    return lookahead.second.tok_kind() == kind;
+  }
 
   bool accept(TokenKind kind)
   {
@@ -130,14 +154,13 @@ private:
     Expression::Ptr name;
     if(peek(TokenKind::Id))
       name = parse_identifier();
-    expect(TokenKind::Equal);
-
+    accept(TokenKind::Equal);
     auto body = parse_expression();
 
     expect_or(TokenKind::Semicolon, TokenKind::EndOfFile);
 
     if(auto is_id = std::dynamic_pointer_cast<Identifier>(name))
-      trees[is_id->id()] = body;
+      trees[is_id->id()] = body->clone();
     range.widen(prev_tok_loc);
     return std::make_shared<Definition>(range, name, body);
   }

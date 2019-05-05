@@ -19,7 +19,10 @@ void REPL::loop()
     if(!root)
     {
       // parse STDIN
-      root = parse_input().front(); // <- TODO: fixme to be more generic
+      auto v = parse_input(); // <- TODO: fixme to be more generic
+      if(v.empty())
+        continue;
+      root = v.front();
     }
     else
     {
@@ -41,6 +44,7 @@ void REPL::loop()
       
       // print
       root->print(std::cout);
+      std::cout << "\n";
 
       root = nullptr;
     }
@@ -49,8 +53,8 @@ void REPL::loop()
 
 std::vector<Statement::Ptr> REPL::parse_input()
 {
-redo:
   std::cout << " > ";
+redo:
   std::string input;
 
   std::getline(std::cin, input);
@@ -59,10 +63,12 @@ redo:
 
   if(input == "q" || input == "quit")
     return { std::make_shared<ErrorStatement>(SourceRange()) };
+  else if(std::cin.eof())
+    return {};
   else if(input.empty())
     goto redo;
 
-  std::stringstream ss;
+  std::stringstream ss(input);
   Tokenizer tokenizer("REPL", ss);
 
   return parse(tokenizer);
